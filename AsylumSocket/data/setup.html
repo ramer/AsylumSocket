@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device config</title>
+  <style>
+    /*/////////////// GLOBAL STYLES ////////////////////*/
+    /* TODO disabled input style */
+
+    body {
+      padding: 30px;
+      background: #eee;
+    }
+
+    header {
+      margin-bottom: 5rem;
+    }
+    /*/////////////// FONT STYLES ////////////////////*/
+
+    html {
+      font-size: 62.5%;
+    }
+
+    body,
+    textarea {
+      font-family: 'Arial, Helvetica, sans-serif';
+    }
+
+    h1 {
+      font-size: 3rem;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+    }
+
+    form {
+      font-size: 1.4rem;
+      color: #222;
+    }
+    /*/////////////// FORM STYLES ////////////////////*/
+
+    form .field-group {
+      display: flex;
+      margin: 0 0 12px 0;
+    }
+
+    form .field-group .label {
+      flex: 1;
+      text-align: right;
+      margin: 0 8px 0 0;
+      padding: 2px 0;
+    }
+
+    form .field-group .field {
+      flex: 3;
+    }
+
+    form .field-group:last-child {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    form .field-group:last-child .field {
+      max-width: 75%;
+    }
+
+    input,
+    select,
+    textarea {
+      padding: .6rem 1rem;
+      font-size: 1.6rem;
+      border: solid 1px #eee;
+      background: #fff;
+      box-sizing: border-box;
+    }
+
+    input:disabled {
+      background: #eee;
+    }
+
+    input:invalid {
+      border: 1px solid red;
+    }
+
+    input:valid {
+      border: 1px solid green;
+    }
+
+    input:focus {
+      outline: none;
+    }
+
+    textarea {
+      width: 100%;
+    }
+
+    input,
+    select {
+      width: 50%;
+    }
+
+    input[type="radio"],
+    input[type="checkbox"],
+    input[type="submit"] {
+      width: auto;
+    }
+
+    [type="checkbox"] {
+      vertical-align: middle;
+    }
+
+    .flexy {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .flexy .testbutton {
+      width: 100px;
+    }
+
+    .flexy .first {
+      width: 130px;
+    }
+    /*/////////////// RWD STYLES ////////////////////*/
+
+    @media (max-width: 720px) {
+      form .field-group .label {
+        text-align: left;
+        margin: 0;
+      }
+      input,
+      select {
+        width: 85%;
+      }
+    }
+
+    @media (max-width: 480px) {
+      input,
+      select {
+        width: 100%;
+      }
+      input[type="radio"],
+      input[type="checkbox"],
+      input[type="submit"] {
+        width: auto;
+      }
+      form .field-group {
+        display: flex;
+        flex-direction: column;
+        margin: 0 0 6px 0;
+      }
+      form .field-group .label {
+        padding: 0 0 5px 0;
+        margin: 10px 0 0 0;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1 id="header-device-name"></h1>
+    <h2>Первоначальная настройка устройства</h2>
+  </header>
+  <div id="loading-placeholer">Загрузка...</div>
+  <form id="mainForm" style="display: none;" action="/submit" method="POST" onsubmit="submitForm(this);">
+    <div class="field-group">
+      <label for="description" class="label">Описание:</label>
+      <div class="field">
+        <input id="description" type="text" name="description" maxlength="128" placeholder="Люстра в гостинной" maxlength="64" autofocus/>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="label">Режим работы устройства:</div>
+      <div class="field" onchange="changeMode(event);">
+        <div>
+          <label>
+            <input id="mode1" name="mode" type="radio" value="1" checked="checked" />Автономно
+          </label>
+        </div>
+        <div>
+          <label>
+            <input id="mode2" name="mode" type="radio" value="2">В локальной сети
+          </label>
+        </div>
+        <div>
+          <label>
+            <input id="mode3" name="mode" type="radio" value="3">С сервером MQTT
+          </label>
+        </div>
+      </div>
+    </div>
+    <h3>Беспроводная сеть</h3>
+    <div class="field-group">
+      <label for="apssid" class="label">SSID точки доступа:</label>
+      <div class="field">
+        <input id="apssid" type="text" name="apssid" maxlength="32" placeholder="My Wi-Fi" value="" required/>
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="apkey" class="label">Пароль:</label>
+      <div class="field">
+        <input id="apkey" type="password" name="apkey" maxlength="32" value="" />
+      </div>
+    </div>
+    <h3>Авторизация на устройстве</h3>
+    <div class="field-group">
+      <label for="locallogin" class="label">Имя пользователя:</label>
+      <div class="field">
+        <input id="locallogin" type="text" name="locallogin" maxlength="32" placeholder="admin" value="" required/>
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="localpassword" class="label">Пароль:</label>
+      <div class="field">
+        <input id="localpassword" type="password" name="localpassword" maxlength="32" value="" />
+      </div>
+    </div>
+    <h3>MQTT-сервер</h3>
+    <div class="field-group">
+      <label for="mqttserver" class="label">Адрес сервера:</label>
+      <div class="field">
+        <input id="mqttserver" type="text" name="mqttserver" maxlength="64" placeholder="192.168.1.123" value="" disabled="true"
+        />
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="mqttlogin" class="label">Имя пользователя:</label>
+      <div class="field">
+        <input id="mqttlogin" type="text" name="mqttlogin" maxlength="32" placeholder="vasya" value="" disabled="true" />
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="mqttpassword" class="label">Пароль:</label>
+      <div class="field">
+        <input id="mqttpassword" type="password" name="mqttpassword" maxlength="32" disabled="true" />
+      </div>
+    </div>
+    <h3>Дополнительные настройки</h3>
+    <div class="field-group">
+      <div class="label">Тип выключателя:</div>
+      <div class="field" onchange="changeMode(event);">
+        <div>
+          <label>
+            <input id="type1" name="type" type="radio" value="1" checked="checked" />Кнопочный
+          </label>
+        </div>
+        <div>
+          <label>
+            <input id="type2" name="type" type="radio" value="2">Энкодер
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="dimmerrangefrom" class="label">Диммировать от (0-255):</label>
+      <div class="field flexy">
+        <div class="first">
+          <input type="number" name="dimmerrangefrom" id="dimmerrangefrom" style="width: 75px;" oninput="changedDimValue(this, 'dimmerrangefromperc');"
+            defaultValue="0" min="0" max="255" step="0" value="0" required /> = <span id="dimmerrangefromperc"></span>          %
+        </div>
+        <div>
+          <input id="dimmerrangefromtest" class="testbutton" type="button" value="💡 тест" onclick="runDimTest('dimmerrangefrom');">
+        </div>
+      </div>
+    </div>
+    <div class="field-group">
+      <label for="dimmerrangeto" class="label">Диммировать до (0-255):</label>
+      <div class="field flexy">
+        <div class="first">
+          <input type="number" name="dimmerrangeto" id="dimmerrangeto" style="width: 75px;" oninput="changedDimValue(this, 'dimmerrangetoperc');"
+            defaultValue="0" min="0" max="255" step="0" value="255" required /> = <span id="dimmerrangetoperc"></span>          %</div>
+        <div>
+          <input id="dimmerrangetotest" class="testbutton" type="button" value="💡 тест" onclick="runDimTest('dimmerrangeto');"></div>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="label">Тип ламп:</div>
+      <div class="field">
+        <label class="check" for="dimmerstartimpulse">
+          <input name="dimmerstartimpulse" id="dimmerstartimpulse" type="checkbox" value="someshit" />энергосберегающие лампы
+        </label>
+      </div>
+    </div>
+    <div class="field-group">
+      <div class="label"></div>
+      <div class="field">
+        <input id="saveForm" name="saveForm" type="submit" value="Сохранить и перезагрузить">
+      </div>
+    </div>
+  </form>
+  <script>
+    // IE 9- polyfill
+    (function () {
+      setTimeout(function (arg1) {
+        if (arg1 === 'test') {
+          // feature test is passed, no need for polyfill
+          return;
+        }
+        var __nativeST__ = window.setTimeout;
+        window.setTimeout = function (vCallback, nDelay /*, argumentToPass1, argumentToPass2, etc. */ ) {
+          var aArgs = Array.prototype.slice.call(arguments, 2);
+          return __nativeST__(vCallback instanceof Function ? function () {
+            vCallback.apply(null, aArgs);
+          } : vCallback, nDelay);
+        };
+      }, 0, 'test');
+
+      var interval = setInterval(function (arg1) {
+        clearInterval(interval);
+        if (arg1 === 'test') {
+          // feature test is passed, no need for polyfill
+          return;
+        }
+        var __nativeSI__ = window.setInterval;
+        window.setInterval = function (vCallback, nDelay /*, argumentToPass1, argumentToPass2, etc. */ ) {
+          var aArgs = Array.prototype.slice.call(arguments, 2);
+          return __nativeSI__(vCallback instanceof Function ? function () {
+            vCallback.apply(null, aArgs);
+          } : vCallback, nDelay);
+        };
+      }, 0, 'test');
+    }())
+  </script>
+  <script>
+    /*
+     * Change mode of operation
+     */
+    function changeMode(event) {
+      var mqtt = event.target.value == 3 ? true : false;
+      ["locallogin", "localpassword"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (id != "localpassword") {
+          el.required = !mqtt;
+          if (mqtt) {
+            el.removeAttribute('required');
+          }
+        }
+        el.disabled = mqtt;
+      });
+      ["mqttserver", "mqttlogin", "mqttpassword"].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (id != "mqttpassword") {
+          el.required = mqtt;
+          if (!mqtt) {
+            el.removeAttribute('required');
+          }
+        }
+        el.disabled = !mqtt;
+      });
+    }
+
+
+    /*
+     * Run dimmer test
+     */
+    function runDimTest(input_id) {
+      // disable buttons for 5 seconds
+      var $buttons = document.getElementsByClassName('testbutton');
+      for (var i = 0; i < $buttons.length; i++) {
+        $buttons[i].disabled = true;
+        setTimeout(function ($button) {
+          $button.disabled = false;
+        }, 5000, $buttons[i]);
+      }
+
+      // get value
+      var $input = document.getElementById(input_id);
+      var val = parseInt($input.value);
+      if (isNaN(val) === true) val = 0;
+      val = val < 0 ? 0 : val;
+      val = val > 255 ? 255 : val;
+
+      // submit data
+      var xmlhttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+      xmlhttp.open("POST", "/test_dim", true);
+      xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+      xmlhttp.send("value=" + val);
+    }
+
+
+    /*
+     * When dimmer value changed
+     */
+    function changedDimValue($input, id) {
+      var min = 0;
+      var max = 255;
+      var value = parseInt($input.value);
+
+      // adjust minimum and maximum
+      switch ($input.id) {
+        case "dimmerrangefrom":
+          max = document.getElementById("dimmerrangeto").value;
+          break;
+        case "dimmerrangeto":
+          min = document.getElementById("dimmerrangefrom").value;
+          break;
+      }
+      $input.max = max;
+      $input.min = min;
+
+      // normalize value
+      if (isNaN(value) === true) value = 0;
+      if (value < min) value = min;
+      if (value > max) value = max;
+      $input.value = value;
+
+      // print percent
+      if (isNaN(value) === true) value = 0;
+      document.getElementById(id).innerText = Math.round(parseInt(value) / 255 * 100);
+
+      // adjust range on other inputs
+      switch ($input.id) {
+        case "dimmerrangefrom":
+          document.getElementById("dimmerrangeto").min = $input.value;
+          break;
+        case "dimmerrangeto":
+          document.getElementById("dimmerrangefrom").max = $input.value;
+          break;
+      }
+    }
+
+    /*
+     * Load JSON from URL
+     */
+    function getJSON(url, callback) {
+      var xhr = new XMLHttpRequest();
+      xhr.open('get', url, true);
+      xhr.responseType = 'json';
+      xhr.onload = function () {
+        var status = xhr.status;
+        if (status == 200) {
+          callback(null, xhr.response);
+        } else {
+          callback(status);
+        }
+      };
+      xhr.send();
+    };
+
+
+    /*
+     * Change mode of operation
+     */
+    function submitForm($form) {
+      event.preventDefault();
+
+      var formData = [];
+      for (var i = 0; i < $form.elements.length; i++) {
+        var e = $form.elements[i];
+        if (!e.disabled &&
+          e.name != "" &&
+          e.name !== "saveForm" &&
+          (e.type == "text" || e.type == "password" || e.type == "number")) {
+          formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
+          continue;
+        }
+        if ((e.name == "mode" || e.name == "type") && e.checked) {
+          formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
+          continue;
+        }
+        if (e.name == "dimmerstartimpulse") {
+          formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(+e.checked));
+          continue;
+        }
+      }
+      formData = formData.join("&");
+
+
+      var xhr = new XMLHttpRequest();
+      xhr.open($form.method, $form.action, true);
+      xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+      xhr.send(formData);
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState != XMLHttpRequest.DONE) return;
+
+        // alert response
+        if (xhr.status != 200) {
+          alert(xhr.status + ': ' + xhr.statusText);
+        } else {
+          alert(xhr.responseText);
+        }
+      }
+    }
+
+
+    /*
+     * Run this on load
+     */
+    // fire oninput events for some inputs
+    document.getElementById("dimmerrangefrom").oninput();
+    document.getElementById("dimmerrangeto").oninput();
+
+    // load settings
+    function fillForm(data) {
+      document.getElementById("header-device-name").textContent = data.uid || "";
+      document.getElementById("description").value = data.description || "";
+      document.getElementById("mode"+parseInt(data.mode || "1")).click();
+      document.getElementById("apssid").value = data.apssid || "";
+      document.getElementById("locallogin").value = data.locallogin || "";
+      document.getElementById("mqttserver").value = data.mqttserver || "";
+      document.getElementById("mqttlogin").value = data.mqttlogin || "";
+      document.getElementById("type"+parseInt(data.type || "1")).click();
+      document.getElementById("dimmerrangefrom").value = data.dimmerrangefrom || "0";
+      document.getElementById("dimmerrangefrom").dispatchEvent(new Event('input'));
+      document.getElementById("dimmerrangeto").value = data.dimmerrangeto || "255";
+      document.getElementById("dimmerrangeto").dispatchEvent(new Event('input'));
+      document.getElementById("dimmerstartimpulse").checked = (data.dimmerstartimpulse == 1);
+
+      // show form
+      document.getElementById("loading-placeholer").style.display = "none";
+      document.getElementById("mainForm").style.display = "block";
+    }
+
+    try {
+      getJSON('/api_config', function(err, data) {
+        if (err != null) {
+          alert('Something went wrong: ' + err);
+          fillForm([]);
+        } else {
+          fillForm(data);
+        }
+      });
+    } catch (err) {
+      alert('Something went wrong: ' + err);
+      fillForm([]);
+    }
+
+  </script>
+</body>
+
+</html>
