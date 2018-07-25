@@ -5,7 +5,7 @@
 */
 
 //ESP8266
-//Flash size: 512К (128K SPIFFS)
+//Flash size: 1M (64K SPIFFS)
 
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WiFi.h>

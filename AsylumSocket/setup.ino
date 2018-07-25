@@ -28,6 +28,7 @@ void initializeSetupMode() {
 
 	Serial.print("Starting HTTP-server ...");
 	httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
+	httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
 	httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
 	httpServer.on("/test_dim", handleTestDim);
