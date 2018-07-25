@@ -1,3 +1,4 @@
+
 /** Load WLAN credentials from EEPROM */
 
 #define validator_char 'x'

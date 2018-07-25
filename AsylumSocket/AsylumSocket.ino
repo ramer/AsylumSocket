@@ -20,7 +20,6 @@
 #include <Wire.h>
 #include <WiFiUdp.h>
 
-
 // DEFINES
 #define debug						true
 #define debug_core					false
