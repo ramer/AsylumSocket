@@ -44,6 +44,7 @@
 
 //DECLARATIONS
 String uid;
+uint32_t spiffs_addr;
 
 String mqtt_topic_pub;
 String mqtt_topic_sub;
@@ -101,14 +102,20 @@ Config config;
 void setup() {
 	if (debug) { Serial.begin(74880); }
 	Serial.setDebugOutput(debug_core);
-
+		
 	uid = getId();
+	spiffs_addr = (ESP.getSketchSize() + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1)); // 0xEB000
+
 	mqtt_topic_sub = uid + "/pub";
 	mqtt_topic_pub = uid + "/sub";
 	mqtt_topic_setup = uid + "/setup";
 	mqtt_topic_reboot = uid + "/reboot";
 	Serial.println(); Serial.println();
 	Serial.print("Chip started ( "); Serial.print(uid); Serial.println(" )");
+	Serial.println();
+	Serial.print("Sketch size: "); Serial.println(ESP.getSketchSize());
+	Serial.print("Flash sector size: "); Serial.println(FLASH_SECTOR_SIZE);
+	Serial.print("SPIFFS address: "); Serial.println(spiffs_addr);
 	Serial.println();
 
 	delay(1000);
