@@ -1,150 +1,76 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device update</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Device update</title>
 
-    <style>
+  <style>
+    body {
+      padding: 30px;
+      background: #eee;
+    }
 
-        /*/////////////// GLOBAL STYLES ////////////////////*/
-        /* TODO disabled input style */
+    header {
+      margin-bottom: 5rem;
+    }
+    html {
+      font-size: 62.5%;
+    }
 
-        body {
-            padding: 30px;
-            background: #eee;
-        }
+    body,
+    textarea {
+      font-family: 'Arial, Helvetica, sans-serif';
+    }
 
-        header {
-            margin-bottom: 5rem;
-        }
-        /*/////////////// FONT STYLES ////////////////////*/
+    h1 {
+      font-size: 3rem;
+    }
 
-        html {
-            font-size: 62.5%;
-        }
+    h2 {
+      font-size: 1.6rem;
+    }
 
-        body,
-        textarea {
-            font-family: 'Arial, Helvetica, sans-serif';
-        }
+    h3 {
+      font-size: 1.2rem;
+    }
 
-        h1 {
-            font-size: 3rem;
-        }
+    form {
+      font-size: 1.4rem;
+      color: #222;
+    }
 
-        h2 {
-            font-size: 1.6rem;
-        }
+    form input[type=submit] {
+      width: 24rem;
+      height: 100%;
+      padding: .6rem 1rem;
+      font-size: 1.6rem;
+      border: 1px solid green;
+      background: #fff;
+      align-items: flex-start;
+      text-align: center;
+      cursor: default;
+      color: buttontext;
+    }
 
-        h3 {
-            font-size: 1.2rem;
-        }
-
-        form {
-            font-size: 1.4rem;
-            color: #222;
-        }
-
-        /*/////////////// FORM STYLES ////////////////////*/
-
-        .file_upload {
-            position: relative;
-            overflow: hidden;
-            font-size: 1em;
-            font-family: 'Arial, Helvetica, sans-serif';
-            line-height: 2em;
-            height: 2em;
-        }
-
-        .file_upload > button {
-            float: right;
-            width: 23rem;
-            height: 100%;
-            padding: .6rem 1rem;
-            font-size: 1.6rem;
-            border: 1px solid green;
-            background: #fff;
-            box-sizing: border-box;
-            align-items: flex-start;
-            text-align: center;
-            cursor: default;
-            color: buttontext;
-        }
-
-        .file_upload input[type=file] {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            transform: scale(20);
-            letter-spacing: 10em; /* IE 9 fix */
-            -ms-transform: scale(20); /* IE 9 fix */
-            opacity: 0;
-            cursor: pointer
-        }
-
-        form input[type=submit] {
-            float: right;
-            width: 23rem;
-            height: 100%;
-            padding: .6rem 1rem;
-            font-size: 1.6rem;
-            border: 1px solid green;
-            background: #fff;
-            box-sizing: border-box;
-            align-items: flex-start;
-            text-align: center;
-            cursor: default;
-            color: buttontext;
-        }
-
-        /*/////////////// RWD STYLES ////////////////////*/
-
-        @media (max-width: 480px) {
-
-            form .file_upload > div {
-                display: none
-            }
-
-            form .file_upload > button {
-                width: 100%
-            }
-
-            form input[type=submit] {
-                width: 100%
-            }
-        }
-    </style>
+  </style>
 </head>
 
 
 <body>
-    <header>
-        <h1 id="header-device-name"></h1>
-        <h2>Обновление ПО устройства</h2>
-    </header>
-    <form method="POST" action="/upload" enctype="multipart/form-data">
-        <h3>Укажите файл для загрузки</h3>
-        <div class="file_upload">
-            <button type="button">Выбрать файл</button>
-            <div id="lbl">Файл не выбран</div>
-            <input id="file_input" type="file" name="update" onchange="updateLabel()">
-        </div>
-        <br>
-        <div>
-            <input type="submit" value="Обновить и перезагрузить">
-        </div>
-    </form>
-    <script>
-        function updateLabel() {
-            var filename = "Файл не выбран";
-            if (document.getElementById('file_input').files[0])
-                filename = document.getElementById('file_input').files[0].name;
-
-            document.getElementById('lbl').innerHTML = filename;
-        }
-    </script>
+  <header>
+    <h1 id="header-device-name"></h1>
+    <h2>Обновление ПО устройства</h2>
+  </header>
+  <form method="POST" action="/upload" enctype="multipart/form-data">
+    <h3>Укажите файл для загрузки</h3>
+    <div>
+      <input id="file_input" type="file" name="update">
+    </div>
+    <br>
+    <div>
+      <input type="submit" value="Обновить и перезагрузить">
+    </div>
+  </form>
 </body>
 </html>
