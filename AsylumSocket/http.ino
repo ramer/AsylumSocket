@@ -4,7 +4,7 @@ void handleRedirect() {
   Serial.print("HTTP-Server redirected from: ");
   Serial.println(httpServer.uri());
 
-  httpServer.sendHeader("Location", String("http://") + toStringIp(httpServer.client().localIP()) + String("/setup.html"), true);
+  httpServer.sendHeader("Location", String("http://") + httpServer.client().localIP().toString() + String("/setup.html"), true);
   httpServer.send ( 302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
   httpServer.client().stop(); // Stop is needed because we sent no content length
 }

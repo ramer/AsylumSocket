@@ -58,12 +58,12 @@
 //DECLARATIONS
 bool setup_mode = false;
 
-String uid;
+char * uid;
 
-String mqtt_topic_pub;
-String mqtt_topic_sub;
-String mqtt_topic_setup;
-String mqtt_topic_reboot;
+char * mqtt_topic_pub;
+char * mqtt_topic_sub;
+char * mqtt_topic_setup;
+char * mqtt_topic_reboot;
 
 volatile bool	  mqtt_value_published = false;
 volatile ulong	mqtt_value_publishedtime = 0;
@@ -115,69 +115,64 @@ Config config;
 void setup() {
 	if (DEBUG) { Serial.begin(74880); }
 	Serial.setDebugOutput(DEBUG_CORE);
-		
-	uid = getId();
-
-	mqtt_topic_sub = uid + "/pub";
-	mqtt_topic_pub = uid + "/sub";
-	mqtt_topic_setup = uid + "/setup";
-	mqtt_topic_reboot = uid + "/reboot";
-
   Serial.printf("\n\n\n");
 
-	Serial.println(); Serial.println();
-	Serial.print("Chip started ( "); Serial.print(uid); Serial.println(" )");
-	Serial.println();
-	Serial.print("Sketch size: "); Serial.println(ESP.getSketchSize());
-	Serial.print("Flash sector size: "); Serial.println(FLASH_SECTOR_SIZE);
-	Serial.println();
+	uid = getId();
+
+  sprintf(mqtt_topic_sub, "%s/pub", uid);
+  sprintf(mqtt_topic_pub, "%s/sub", uid);
+  sprintf(mqtt_topic_setup, "%s/setup", uid);
+  sprintf(mqtt_topic_reboot, "%s/reboot", uid);
+
+	Serial.printf("Chip started (%s) \n", uid);
+	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
 	delay(1000);
 
 #pragma region setup_pins
-	Serial.print("Configuring pins ... ");
+	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_SETUP, INPUT);
 	pinMode(PIN_EVENT, INPUT);
 	pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
 	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-	Serial.println("done");
+	Serial.printf("done \n");
 #pragma endregion
 
 #pragma region setup_i2c
 #if DEVICE_TYPE == 3
-  Serial.print("Joining I2C bus ... ");
+  Serial.printf("Joining I2C bus ... ");
 	Wire.begin(0, 2);        // join i2c bus (address optional for master)
-	Serial.println("done");
+	Serial.printf("done \n");
 #endif
 #pragma endregion
 
 #pragma region setup_eeprom_and_config
-	Serial.print("Initializing EEPROM ("); Serial.print(sizeof(Config)); Serial.println(") bytes ... ");
+  Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
 	EEPROM.begin(sizeof(Config));
-	Serial.println("done");
+	Serial.printf("done \n");
 
-	Serial.print("Loading config ...");
+	Serial.printf("Loading config ... ");
 	if (loadConfig()) {
-		Serial.println(" success");
+		Serial.printf("success \n");
 
-		Serial.print(" - state:                       "); Serial.println(config.state);
-		Serial.print(" - value:                       "); Serial.println(config.value);
-		Serial.print(" - description:                 "); Serial.println(config.description);
-		Serial.print(" - mode:                        "); Serial.println(config.mode);
-		Serial.print(" - type:                        "); Serial.println(config.type);
-		Serial.print(" - apssid:                      "); Serial.println(config.apssid);
-		Serial.print(" - apkey:                       "); Serial.println(config.apkey);
-		Serial.print(" - locallogin:                  "); Serial.println(config.locallogin);
-		Serial.print(" - localpassword:               "); Serial.println(config.localpassword);
-		Serial.print(" - mqttserver:                  "); Serial.println(config.mqttserver);
-		Serial.print(" - mqttlogin:                   "); Serial.println(config.mqttlogin);
-		Serial.print(" - mqttpassword:                "); Serial.println(config.mqttpassword);
-		Serial.print(" - extension 1 / 2 / 3:         "); Serial.print(config.extension1); Serial.print(" / "); Serial.print(config.extension2); Serial.print(" / "); Serial.println(config.extension3);
+		Serial.printf(" - state:               %u \n", config.state);
+		Serial.printf(" - value:               %u \n", config.value);
+		Serial.printf(" - description:         %s \n", config.description);
+		Serial.printf(" - mode:                %u \n", config.mode);
+		Serial.printf(" - type:                %u \n", config.type);
+		Serial.printf(" - apssid:              %s \n", config.apssid);
+		Serial.printf(" - apkey:               %s \n", config.apkey);
+		Serial.printf(" - locallogin:          %s \n", config.locallogin);
+		Serial.printf(" - localpassword:       %s \n", config.localpassword);
+		Serial.printf(" - mqttserver:          %s \n", config.mqttserver);
+		Serial.printf(" - mqttlogin:           %s \n", config.mqttlogin);
+		Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
+		Serial.printf(" - extension 1 / 2 / 3: %u / %u / %u \n", config.extension1, config.extension2, config.extension3);
 
 		initializeRegularMode();
 	}
 	else {
-		Serial.println(" error");
+		Serial.printf("error \n");
 
 		dumpConfig();
 
@@ -205,29 +200,26 @@ void loop() {
 			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
 				time_connection_wifi = millis();
 
-				Serial.print("Connecting to access point: "); Serial.print(config.apssid);
-				Serial.print(", password: "); Serial.print(config.apkey); Serial.print(" ... ");
+				Serial.printf("Connecting to access point: %s , password: %s ... ", config.apssid, config.apkey);
 
 				WiFi.begin(config.apssid, config.apkey);
 
 				switch (WiFi.waitForConnectResult())
 				{
 				case WL_CONNECTED:
-					Serial.print("connected, IP address: ");
-					Serial.println(WiFi.localIP());
+					Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
 					break;
 				case WL_NO_SSID_AVAIL:
-					Serial.print("AP cannot be reached, SSID: ");
-					Serial.println(WiFi.SSID());
+					Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
 					break;
 				case WL_CONNECT_FAILED:
-					Serial.println("incorrect password");
+					Serial.printf("incorrect password \n");
 					break;
 				case WL_IDLE_STATUS:
-					Serial.println("Wi-Fi is in process of changing between statuses");
+					Serial.printf("Wi-Fi is in process of changing between statuses \n");
 					break;
 				default:
-					Serial.println("module is not configured in station mode");
+					Serial.printf("module is not configured in station mode \n");
 					break;
 				}
 			}
@@ -240,24 +232,20 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					Serial.print("Connecting to MQTT server: "); Serial.print(config.mqttserver);
-					Serial.print(" as "); Serial.print(uid);
-					Serial.print(", login: "); Serial.print(config.mqttlogin);
-					Serial.print(", password: "); Serial.print(config.mqttpassword); Serial.print(" ... ");
+					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.mqttserver, uid, config.mqttlogin, config.mqttpassword);
 
-					if (mqttClient.connect(uid.c_str(), config.mqttlogin, config.mqttpassword)) {
-						Serial.print("connected, state = ");
-						Serial.println(mqttClient.state());
-						mqttClient.subscribe(mqtt_topic_sub.c_str());
-						mqttClient.subscribe(mqtt_topic_setup.c_str());
-						mqttClient.subscribe(mqtt_topic_reboot.c_str());
+					if (mqttClient.connect(uid, config.mqttlogin, config.mqttpassword)) {
+						Serial.printf("connected, state = %i \n", mqttClient.state());
+						
+            mqttClient.subscribe(mqtt_topic_sub);
+						mqttClient.subscribe(mqtt_topic_setup);
+						mqttClient.subscribe(mqtt_topic_reboot);
 
 						mqtt_sendstatus();
 					}
 					else 
 					{
-						Serial.print("failed, state = ");
-						Serial.print(mqttClient.state());
+						Serial.printf ("failed, state = %i \n", mqttClient.state());
 					}
 				}
 			}

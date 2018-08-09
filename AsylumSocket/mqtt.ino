@@ -10,7 +10,7 @@ void mqtt_check_value_published() {
 
 void mqtt_sendstatus() {
 	if (mqttClient.connected()) {
-		mqttClient.publish(mqtt_topic_pub.c_str(), String(state).c_str(), true);
+		mqttClient.publish(mqtt_topic_pub, String(state).c_str(), true);
 		Serial.print(" - message sent ["); Serial.print(mqtt_topic_pub); Serial.print("]: ");
 		Serial.println(state);
 		mqtt_value_published = true;
@@ -27,7 +27,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 	}
 	Serial.println();
 
-	if (strcmp(topic, mqtt_topic_sub.c_str()) == 0) {
+	if (strcmp(topic, mqtt_topic_sub) == 0) {
 		int newvalue = atoi(buffer);
 		Serial.print(" - value recieved: ");
 		Serial.println(newvalue, DEC);
@@ -36,12 +36,12 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 		mqtt_sendstatus();
 	}
 
-	if (strcmp(topic, mqtt_topic_setup.c_str()) == 0) {
+	if (strcmp(topic, mqtt_topic_setup) == 0) {
 		deinitializeRegularMode();
 		initializeSetupMode();
 	}
 
-	if (strcmp(topic, mqtt_topic_reboot.c_str()) == 0) {
+	if (strcmp(topic, mqtt_topic_reboot) == 0) {
 		reboot();
 	}
 }

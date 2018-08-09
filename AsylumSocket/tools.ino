@@ -25,17 +25,17 @@ boolean isIp(String str) {
   }
   return true;
 }
+//
+//String toStringIp(IPAddress ip) {
+//  String res = "";
+//  for (int i = 0; i < 3; i++) {
+//    res += String((ip >> (8 * i)) & 0xFF) + ".";
+//  }
+//  res += String(((ip >> 8 * 3)) & 0xFF);
+//  return res;
+//}
 
-String toStringIp(IPAddress ip) {
-  String res = "";
-  for (int i = 0; i < 3; i++) {
-    res += String((ip >> (8 * i)) & 0xFF) + ".";
-  }
-  res += String(((ip >> 8 * 3)) & 0xFF);
-  return res;
-}
-
-String getId() {
+char * getId() {
   uint8_t MAC_array[6];
   WiFi.macAddress(MAC_array);
 
@@ -46,7 +46,7 @@ String getId() {
     uid_temp += String(MAC_array[i], HEX);
   }  
 
-  return uid_temp;
+  return (char * ) uid_temp.c_str();
 }
 
 //void i2c_sendvalue(byte value) {
@@ -96,9 +96,6 @@ String getId() {
 //  return nBufferLength - 1;
 //}
 
-
-void loop() {
-}
 
 void reboot() {
 	if (setup_mode) {

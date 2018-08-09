@@ -4,7 +4,7 @@ void initializeSetupMode() {
 
 	Serial.print("Starting access point ...");
 	WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
-	WiFi.softAP(getId().c_str());
+	WiFi.softAP(uid);
 	delay(500);
 	Serial.print(" started. IP address: ");
 	Serial.println(WiFi.softAPIP());
