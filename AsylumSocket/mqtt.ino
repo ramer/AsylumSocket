@@ -11,26 +11,20 @@ void mqtt_check_value_published() {
 void mqtt_sendstatus() {
 	if (mqttClient.connected()) {
 		mqttClient.publish(mqtt_topic_pub, String(state).c_str(), true);
-		Serial.print(" - message sent ["); Serial.print(mqtt_topic_pub); Serial.print("]: ");
-		Serial.println(state);
-		mqtt_value_published = true;
+
+    Serial.printf(" - message sent [%s] %s \n", mqtt_topic_pub, String(state).c_str());
+		
+    mqtt_value_published = true;
 		mqtt_value_publishedtime = millis();
 	}
 }
 
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
-	Serial.print(" - message recieved ["); Serial.print(topic); Serial.print("]: ");
-	char buffer[length];
-	for (int i = 0; i < length; i++) {
-		buffer[i] = (char)payload[i];
-		Serial.print((char)payload[i]);
-	}
-	Serial.println();
+	Serial.printf(" - message recieved [%s]: %s \n", topic, (char *)payload);
 
 	if (strcmp(topic, mqtt_topic_sub) == 0) {
-		int newvalue = atoi(buffer);
-		Serial.print(" - value recieved: ");
-		Serial.println(newvalue, DEC);
+		int newvalue = atoi((char *)payload);
+	  Serial.printf(" - value recieved: %s \n", newvalue);
 
 		update_state(newvalue);
 		mqtt_sendstatus();
