@@ -21,117 +21,134 @@
 #include <WiFiUdp.h>
 
 // DEFINES
-#define debug						true
-#define debug_core					false
-#define uid_prefix					"Socket"
-#define dns_port					53
-#define http_port					80
-#define pin_buttonsetup				0	// inverted
-#define pin_button					0	// inverted
-#define pin_relay					12	// normal
-#define pin_ledsetup				13	// inverted
+#define DEVICE_TYPE         0
 
-#define buttonsetup_delaytime		10000
-#define button_debouncetime			100
-#define ledsetup_delay				500
-#define mqtt_publishdelay			200
+#define DEBUG						    true
+#define DEBUG_CORE					false
 
-#define wifi_connetion_retrydelay	5000
-#define mqtt_connetion_retrydelay	5000
+#if DEVICE_TYPE == 0
+#define DEVICE_PREFIX				"Socket"
+#elif DEVICE_TYPE == 1
+#define DEVICE_PREFIX				"Switch"
+#elif DEVICE_TYPE == 2
+#define DEVICE_PREFIX				"Motor"
+#elif DEVICE_TYPE == 3
+#define DEVICE_PREFIX				"Dimmer"
+#define ADDRESS_I2C_SLAVE		(0x1)
+#else
+#define DEVICE_PREFIX				"Device"
+#endif
 
-//#define i2cslaveaddress				(0x1)
+#define PORT_DNS					  53
+#define PORT_HTTP					  80
+
+#define PIN_SETUP			      0	  // inverted
+#define PIN_EVENT					  0	  // inverted
+#define PIN_ACTION					12	// normal
+#define PIN_LED				      13	// inverted
+
+#define INTERVAL_SETUP		        10000
+#define INTERVAL_EVENT_DEBOUNCE	  100
+#define INTERVAL_LED				      500
+#define INTERVAL_MQTT_PUBLISH		  200
+
+#define INTERVAL_CONNECTION_WIFI	5000
+#define INTERVAL_CONNECTION_MQTT	5000
 
 //DECLARATIONS
+bool setup_mode = false;
+
 String uid;
-uint32_t spiffs_addr;
 
 String mqtt_topic_pub;
 String mqtt_topic_sub;
 String mqtt_topic_setup;
 String mqtt_topic_reboot;
 
-volatile bool	mqtt_value_published = false;
+volatile bool	  mqtt_value_published = false;
 volatile ulong	mqtt_value_publishedtime = 0;
 
-bool buttonsetup_laststate = false;
-bool button_laststate = false;
-bool ledsetup_laststate = false;
+bool laststate_setup = false;
+bool laststate_event = false;
+bool laststate_led   = false;
 
-bool setup_mode = false;
+ulong time_setup = 0;
+ulong time_event = 0;
+ulong time_led = 0;
 
-ulong buttonsetup_time = 0;
-ulong button_time = 0;
-ulong ledsetup_time = 0;
+ulong	time_connection_wifi = 0;
+ulong	time_connection_mqtt = 0;
 
-ulong	wifi_connetion_time = 0;
-ulong	mqtt_connetion_time = 0;
+volatile uint16_t state;  // main var, holds 
+volatile uint16_t value;
 
-volatile uint16_t state;
-
-DNSServer				dnsServer;
-WiFiClient				wifiClient;
-PubSubClient			mqttClient(wifiClient);
-ESP8266WebServer		httpServer(http_port);
-ESP8266HTTPUpdateServer httpUpdater(debug);
-IPAddress				setupMode_AP_IP(192, 168, 4, 1);
-IPAddress				setupMode_AP_NetMask(255, 255, 255, 0);
+DNSServer				        dnsServer;
+WiFiClient				      wifiClient;
+PubSubClient			      mqttClient(wifiClient);
+ESP8266WebServer		    httpServer(PORT_HTTP);
+ESP8266HTTPUpdateServer httpUpdater(DEBUG);
+IPAddress				        wifi_AP_IP  (192, 168, 4, 1);
+IPAddress				        wifi_AP_MASK(255, 255, 255, 0);
 
 //EEPROM stored configuration
 struct Config {
-	char		reserved[8] = "";
-	uint16_t	state;
+	char		  reserved[8] = "";
+  uint16_t	type = DEVICE_TYPE;
+  uint16_t	state;
 	uint16_t	value;
-	char		description[128];
-	uint16_t	mode;
-	uint16_t	type;
-	char		apssid[32];
-	char		apkey[32];
-	char		locallogin[32];
-	char		localpassword[32];
-	char		mqttserver[256];
-	char		mqttlogin[32];
-	char		mqttpassword[32];
+	char		  description[128];
+	uint16_t	mode; //reserved
+	char		  apssid[32];
+	char		  apkey[32];
+	char		  locallogin[32];
+	char		  localpassword[32];
+	char		  mqttserver[256];
+	char		  mqttlogin[32];
+	char		  mqttpassword[32];
 	uint16_t	extension1;
 	uint16_t	extension2;
 	uint16_t	extension3;
-	byte		validator;
+	byte		  validator;
 };
 Config config;
 
 void setup() {
-	if (debug) { Serial.begin(74880); }
-	Serial.setDebugOutput(debug_core);
+	if (DEBUG) { Serial.begin(74880); }
+	Serial.setDebugOutput(DEBUG_CORE);
 		
 	uid = getId();
-	spiffs_addr = (ESP.getSketchSize() + FLASH_SECTOR_SIZE - 1) & (~(FLASH_SECTOR_SIZE - 1)); // 0xEB000
 
 	mqtt_topic_sub = uid + "/pub";
 	mqtt_topic_pub = uid + "/sub";
 	mqtt_topic_setup = uid + "/setup";
 	mqtt_topic_reboot = uid + "/reboot";
+
+  Serial.printf("\n\n\n");
+
 	Serial.println(); Serial.println();
 	Serial.print("Chip started ( "); Serial.print(uid); Serial.println(" )");
 	Serial.println();
 	Serial.print("Sketch size: "); Serial.println(ESP.getSketchSize());
 	Serial.print("Flash sector size: "); Serial.println(FLASH_SECTOR_SIZE);
-	Serial.print("SPIFFS address: "); Serial.println(spiffs_addr);
 	Serial.println();
 
 	delay(1000);
 
 #pragma region setup_pins
 	Serial.print("Configuring pins ... ");
-	pinMode(pin_buttonsetup, INPUT);
-	pinMode(pin_button, INPUT);
-	pinMode(pin_relay, OUTPUT);		digitalWrite(pin_relay, LOW);		// default initial value
-	pinMode(pin_ledsetup, OUTPUT);	digitalWrite(pin_ledsetup, HIGH);	// default initial value
+	pinMode(PIN_SETUP, INPUT);
+	pinMode(PIN_EVENT, INPUT);
+	pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
 	Serial.println("done");
 #pragma endregion
 
 #pragma region setup_i2c
-	//Serial.print("Joining I2C bus ... ");
-	//Wire.begin(0, 2);        // join i2c bus (address optional for master)
-	//Serial.println("done");
+#if DEVICE_TYPE == 3
+  Serial.print("Joining I2C bus ... ");
+	Wire.begin(0, 2);        // join i2c bus (address optional for master)
+	Serial.println("done");
+#endif
 #pragma endregion
 
 #pragma region setup_eeprom_and_config
@@ -185,8 +202,8 @@ void loop() {
 
 		if (WiFi.status() != WL_CONNECTED) {
 
-			if (millis() - wifi_connetion_time > wifi_connetion_retrydelay) {
-				wifi_connetion_time = millis();
+			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
+				time_connection_wifi = millis();
 
 				Serial.print("Connecting to access point: "); Serial.print(config.apssid);
 				Serial.print(", password: "); Serial.print(config.apkey); Serial.print(" ... ");
@@ -220,8 +237,8 @@ void loop() {
 
 			if (!mqttClient.loop()) {
 
-				if (!mqttClient.connected() && millis() - mqtt_connetion_time > mqtt_connetion_retrydelay) {
-					mqtt_connetion_time = millis();
+				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
+					time_connection_mqtt = millis();
 
 					Serial.print("Connecting to MQTT server: "); Serial.print(config.mqttserver);
 					Serial.print(" as "); Serial.print(uid);
@@ -252,10 +269,10 @@ void loop() {
 
 	// LOOP ANYWAY
 
-	if (digitalRead(pin_button) == LOW && button_laststate == false && millis() - button_time > button_debouncetime)
+	if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
 	{
-		button_time = millis();
-		button_laststate = true;
+		time_event = millis();
+		laststate_event = true;
 
 		if (state == 0) {
 			update_state(1);
@@ -265,26 +282,26 @@ void loop() {
 		}
 
 	}
-	if (digitalRead(pin_button) == HIGH && button_laststate == true && millis() - button_time > button_debouncetime)
+	if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
 	{
-		button_time = millis();
-		button_laststate = false;
+		time_event = millis();
+		laststate_event = false;
 	}
 
 
-	if (digitalRead(pin_buttonsetup) == LOW && buttonsetup_laststate == false)
+	if (digitalRead(PIN_SETUP) == LOW && laststate_setup == false)
 	{
-		buttonsetup_time = millis();
-		buttonsetup_laststate = true;
+		time_setup = millis();
+		laststate_setup = true;
 	}
-	if (digitalRead(pin_buttonsetup) == HIGH && buttonsetup_laststate == true)
+	if (digitalRead(PIN_SETUP) == HIGH && laststate_setup == true)
 	{
-		buttonsetup_time = millis();
-		buttonsetup_laststate = false;
+		time_setup = millis();
+		laststate_setup = false;
 	}
-	if (buttonsetup_laststate == true && millis() - buttonsetup_time > buttonsetup_delaytime)
+	if (laststate_setup == true && millis() - time_setup > INTERVAL_SETUP)
 	{
-		buttonsetup_time = millis();
+		time_setup = millis();
 		if (!setup_mode)
 		{
 			deinitializeRegularMode();
@@ -297,12 +314,12 @@ void loop() {
 		}
 	}
 
-	if (setup_mode || ledsetup_laststate)
+	if (setup_mode || laststate_led)
 	{
-		if (millis() - ledsetup_time > ledsetup_delay) {
-			ledsetup_time = millis();
-			ledsetup_laststate = !ledsetup_laststate;
-			digitalWrite(pin_ledsetup, !ledsetup_laststate); // LED circuit inverted
+		if (millis() - time_led > INTERVAL_LED) {
+			time_led = millis();
+			laststate_led = !laststate_led;
+			digitalWrite(PIN_LED, !laststate_led); // LED circuit inverted
 		}
 	}
 }

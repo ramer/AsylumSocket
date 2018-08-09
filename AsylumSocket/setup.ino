@@ -3,7 +3,7 @@ void initializeSetupMode() {
 	Serial.println("Entering setup mode.");
 
 	Serial.print("Starting access point ...");
-	WiFi.softAPConfig(setupMode_AP_IP, setupMode_AP_IP, setupMode_AP_NetMask);
+	WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
 	WiFi.softAP(getId().c_str());
 	delay(500);
 	Serial.print(" started. IP address: ");
@@ -11,7 +11,7 @@ void initializeSetupMode() {
 
 	Serial.print("Starting DNS-server ...");
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-	dnsServer.start(dns_port, "*", setupMode_AP_IP);
+	dnsServer.start(PORT_DNS, "*", wifi_AP_IP);
 	Serial.println(" started");
 
 	Serial.print("Mounting SPIFFS ...");

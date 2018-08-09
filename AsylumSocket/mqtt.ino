@@ -1,7 +1,7 @@
 
 
 void mqtt_check_value_published() {
-	if (!mqtt_value_published && millis() - mqtt_value_publishedtime > mqtt_publishdelay) {
+	if (!mqtt_value_published && millis() - mqtt_value_publishedtime > INTERVAL_MQTT_PUBLISH) {
 		mqtt_sendstatus();
 		mqtt_value_published = true;
 		mqtt_value_publishedtime = millis();

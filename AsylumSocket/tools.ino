@@ -2,13 +2,13 @@
 
 void update_state(uint16_t newstate) {
   if (newstate == 0) {
-	  digitalWrite(pin_relay, LOW);
+	  digitalWrite(PIN_ACTION, LOW);
 	  state = newstate;
 	  Serial.println(" - relay turned off");
   }
   else
   {
-	  digitalWrite(pin_relay, HIGH);
+	  digitalWrite(PIN_ACTION, HIGH);
 	  state = newstate;
 	  Serial.println(" - relay turned on");
   }
@@ -39,7 +39,7 @@ String getId() {
   uint8_t MAC_array[6];
   WiFi.macAddress(MAC_array);
 
-  String uid_temp = uid_prefix;
+  String uid_temp = DEVICE_PREFIX;
   uid_temp += "-";
   
   for (int i = sizeof(MAC_array) - 2; i < sizeof(MAC_array); ++i){
@@ -50,7 +50,7 @@ String getId() {
 }
 
 //void i2c_sendvalue(byte value) {
-//  Wire.beginTransmission(i2cslaveaddress);
+//  Wire.beginTransmission(ADDRESS_I2C_SLAVE);
 //  Wire.write(value);
 //  uint8_t err_code = Wire.endTransmission();
 //
@@ -72,6 +72,34 @@ String getId() {
 //  }
 //}
 
+/*
+* SerialPrintf
+* Реализует функциональность printf в Serial.print
+* Применяется для отладочной печати
+* Параметры как у printf
+* Возвращает
+*		0 - ошибка формата
+*		отрицательное чило - нехватка памяти, модуль числа равен запрашиваемой памяти
+*		положительное число - количество символов, выведенное в Serial
+*/
+//const size_t SerialPrintf(const char *szFormat, ...) {
+//  va_list argptr;
+//  va_start(argptr, szFormat);
+//  char *szBuffer = 0;
+//  const size_t nBufferLength = vsnprintf(szBuffer, 0, szFormat, argptr) + 1;
+//  if (nBufferLength == 1) return 0;
+//  szBuffer = (char *)malloc(nBufferLength);
+//  if (!szBuffer) return -nBufferLength;
+//  vsnprintf(szBuffer, nBufferLength, szFormat, argptr);
+//  Serial.print(szBuffer);
+//  free(szBuffer);
+//  return nBufferLength - 1;
+//}
+
+
+void loop() {
+}
+
 void reboot() {
 	if (setup_mode) {
 		deinitializeSetupMode();
@@ -82,7 +110,7 @@ void reboot() {
 	}
   
 	Serial.println();
-	Serial.println("Chip restarting...");
+	Serial.println("Chip restarted.");
 	Serial.println();
   
 	ESP.restart();
