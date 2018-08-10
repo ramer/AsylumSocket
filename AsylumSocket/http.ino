@@ -1,8 +1,7 @@
 
 
 void handleRedirect() {
-  Serial.print("HTTP-Server redirected from: ");
-  Serial.println(httpServer.uri());
+  Serial.printf("HTTP-Server: request redirected from: %s \n", httpServer.uri().c_str());
 
   httpServer.sendHeader("Location", String("http://") + httpServer.client().localIP().toString() + String("/setup.html"), true);
   httpServer.send ( 302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
@@ -30,12 +29,13 @@ void handleConfigSave() {
 
   delay(1000);
   
-  Serial.print("Saving config ... ");
+  Serial.printf("Saving config ... ");
   saveConfig();
-  Serial.println(" success");
+  Serial.printf("success \n");
  
   deinitializeSetupMode();
   initializeRegularMode();
+  mode = 0;
 }
 
 void handleTestDim() {
@@ -48,9 +48,7 @@ void handleTestDim() {
   httpServer.send(200, "text/html", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
   httpServer.client().stop(); // Stop is needed because we sent no content length
 
-  Serial.print("Testing dimmer value ("); Serial.print(newvalue); Serial.print(") ... ");
-  update_state(newvalue);
-  Serial.println("done");
+  Serial.printf("Testing dimmer value (%i) \n", newvalue);
 }
 
 void handleApiConfig() {
@@ -76,18 +74,15 @@ void handleApiConfig() {
   httpServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
   httpServer.send(200, "text/html", buffer);
 
-  Serial.println("HTTP-Server api_config Responce:");
-  Serial.println(buffer);
-  Serial.println("HTTP-Server end of api_config");
+  Serial.printf("HTTP-Server: config requested \n");
 }
 
 void handleIOS() {
-  Serial.print("HTTP-Server IOS handled by 'SUCCESS':");
-  Serial.println(httpServer.uri());
-  
   httpServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   httpServer.sendHeader("Pragma", "no-cache");
   httpServer.sendHeader("Expires", "-1");
   httpServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
   httpServer.send(200, "text/html", "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
+
+  Serial.printf("HTTP-Server: IOS handled by 'SUCCESS': %s \n", httpServer.uri().c_str());
 }

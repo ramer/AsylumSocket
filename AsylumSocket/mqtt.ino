@@ -20,11 +20,13 @@ void mqtt_sendstatus() {
 }
 
 void mqtt_callback(char* topic, byte* payload, unsigned int length) {
-	Serial.printf(" - message recieved [%s]: %s \n", topic, (char *)payload);
+  payload[length] = '\0';
+  String pl = String((char*)payload);
+	Serial.printf(" - message recieved [%s]: %s \n", topic, pl.c_str());
 
 	if (strcmp(topic, mqtt_topic_sub) == 0) {
-		int newvalue = atoi((char *)payload);
-	  Serial.printf(" - value recieved: %s \n", newvalue);
+    uint16_t newvalue = pl.toInt();
+	  Serial.printf(" - value recieved: %u \n", newvalue);
 
 		update_state(newvalue);
 		mqtt_sendstatus();
@@ -33,6 +35,7 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 	if (strcmp(topic, mqtt_topic_setup) == 0) {
 		deinitializeRegularMode();
 		initializeSetupMode();
+    mode = 1;
 	}
 
 	if (strcmp(topic, mqtt_topic_reboot) == 0) {

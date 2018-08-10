@@ -16,15 +16,15 @@ void update_state(uint16_t newstate) {
   mqtt_value_published = false;
 }
 
-boolean isIp(String str) {
-  for (int i = 0; i < str.length(); i++) {
-    int c = str.charAt(i);
-    if (c != '.' && (c < '0' || c > '9')) {
-      return false;
-    }
-  }
-  return true;
-}
+//boolean isIp(String str) {
+//  for (int i = 0; i < str.length(); i++) {
+//    int c = str.charAt(i);
+//    if (c != '.' && (c < '0' || c > '9')) {
+//      return false;
+//    }
+//  }
+//  return true;
+//}
 //
 //String toStringIp(IPAddress ip) {
 //  String res = "";
@@ -35,18 +35,28 @@ boolean isIp(String str) {
 //  return res;
 //}
 
-char * getId() {
+void ResolveIdentifiers() {
   uint8_t MAC_array[6];
   WiFi.macAddress(MAC_array);
 
   String uid_temp = DEVICE_PREFIX;
   uid_temp += "-";
-  
+
   for (int i = sizeof(MAC_array) - 2; i < sizeof(MAC_array); ++i){
     uid_temp += String(MAC_array[i], HEX);
   }  
 
-  return (char * ) uid_temp.c_str();
+  uid = new char[uid_temp.length() + 1]; strcpy(uid, uid_temp.c_str());
+
+  String topic_temp;
+  topic_temp = uid_temp + "/pub";
+  mqtt_topic_sub = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_sub, topic_temp.c_str());
+  topic_temp = uid_temp + "/sub";
+  mqtt_topic_pub = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_pub, topic_temp.c_str());
+  topic_temp = uid_temp + "/setup";
+  mqtt_topic_setup = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_setup, topic_temp.c_str());
+  topic_temp = uid_temp + "/reboot";
+  mqtt_topic_reboot = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_reboot, topic_temp.c_str());
 }
 
 //void i2c_sendvalue(byte value) {
@@ -98,9 +108,12 @@ char * getId() {
 
 
 void reboot() {
-	if (setup_mode) {
+	if (mode == 1) {
 		deinitializeSetupMode();
 	}
+  else if (mode == 2) {
+    deinitializeSmartConfigMode();
+  }
 	else
 	{
 		deinitializeRegularMode();

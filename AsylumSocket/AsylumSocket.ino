@@ -19,6 +19,7 @@
 #include <FS.h>
 #include <Wire.h>
 #include <WiFiUdp.h>
+#include <stdio.h>
 
 // DEFINES
 #define DEVICE_TYPE         0
@@ -42,21 +43,23 @@
 #define PORT_DNS					  53
 #define PORT_HTTP					  80
 
-#define PIN_SETUP			      0	  // inverted
+#define PIN_MODE			      0	  // inverted
 #define PIN_EVENT					  0	  // inverted
 #define PIN_ACTION					12	// normal
 #define PIN_LED				      13	// inverted
 
 #define INTERVAL_SETUP		        10000
 #define INTERVAL_EVENT_DEBOUNCE	  100
-#define INTERVAL_LED				      500
+#define INTERVAL_LED_SETUP	      500
+#define INTERVAL_LED_SMARTCONFIG  250
 #define INTERVAL_MQTT_PUBLISH		  200
 
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
 
 //DECLARATIONS
-bool setup_mode = false;
+//bool setup_mode = false;
+byte mode; // 0 - regular , 1 - setup , 2 - smart config
 
 char * uid;
 
@@ -68,11 +71,11 @@ char * mqtt_topic_reboot;
 volatile bool	  mqtt_value_published = false;
 volatile ulong	mqtt_value_publishedtime = 0;
 
-bool laststate_setup = false;
+bool laststate_mode = false;
 bool laststate_event = false;
 bool laststate_led   = false;
 
-ulong time_setup = 0;
+ulong time_mode = 0;
 ulong time_event = 0;
 ulong time_led = 0;
 
@@ -115,15 +118,13 @@ Config config;
 void setup() {
 	if (DEBUG) { Serial.begin(74880); }
 	Serial.setDebugOutput(DEBUG_CORE);
+  
+  delay(1000);
+
   Serial.printf("\n\n\n");
 
-	uid = getId();
-
-  sprintf(mqtt_topic_sub, "%s/pub", uid);
-  sprintf(mqtt_topic_pub, "%s/sub", uid);
-  sprintf(mqtt_topic_setup, "%s/setup", uid);
-  sprintf(mqtt_topic_reboot, "%s/reboot", uid);
-
+  ResolveIdentifiers();
+  
 	Serial.printf("Chip started (%s) \n", uid);
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
@@ -131,7 +132,7 @@ void setup() {
 
 #pragma region setup_pins
 	Serial.printf("Configuring pins ... ");
-	pinMode(PIN_SETUP, INPUT);
+	pinMode(PIN_MODE, INPUT);
 	pinMode(PIN_EVENT, INPUT);
 	pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
 	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
@@ -169,13 +170,15 @@ void setup() {
 		Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
 		Serial.printf(" - extension 1 / 2 / 3: %u / %u / %u \n", config.extension1, config.extension2, config.extension3);
 
-		initializeRegularMode();
+    mode = 0;
+    initializeRegularMode();
 	}
 	else {
 		Serial.printf("error \n");
 
 		dumpConfig();
 
+    mode = 1;
 		initializeSetupMode();
 	}
 #pragma endregion
@@ -184,16 +187,47 @@ void setup() {
 
 void loop() {
 	
-	if (setup_mode) {
-		// LOOP IN SETUP MODE
+  if (mode == 1) {
+    // LOOP IN SETUP MODE
 
-		dnsServer.processNextRequest();
-		httpServer.handleClient();
-		
+    dnsServer.processNextRequest();
+    httpServer.handleClient();
+
+  } 
+  else if (mode == 2) {
+    // LOOP IN SMART CONFIG MODE
+
+    if (WiFi.smartConfigDone()) {
+
+      Serial.printf("Connecting to access point: %s , password: %s ... ", WiFi.SSID().c_str(), WiFi.psk().c_str());
+
+      switch (WiFi.waitForConnectResult())
+      {
+      case WL_CONNECTED:
+        Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
+        break;
+      case WL_NO_SSID_AVAIL:
+        Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
+        break;
+      case WL_CONNECT_FAILED:
+        Serial.printf("incorrect password \n");
+        break;
+      case WL_IDLE_STATUS:
+        Serial.printf("Wi-Fi is idle \n");
+        break;
+      default:
+        Serial.printf("module is not configured in station mode \n");
+        break;
+      }
+
+      initializeSetupMode();
+      mode = 1;
+    }
+
 	}
 	else
 	{
-		// LOOP IN NORMAL MODE
+		// LOOP IN REGULAR MODE
 
 		if (WiFi.status() != WL_CONNECTED) {
 
@@ -216,7 +250,7 @@ void loop() {
 					Serial.printf("incorrect password \n");
 					break;
 				case WL_IDLE_STATUS:
-					Serial.printf("Wi-Fi is in process of changing between statuses \n");
+					Serial.printf("Wi-Fi is idle \n");
 					break;
 				default:
 					Serial.printf("module is not configured in station mode \n");
@@ -277,34 +311,47 @@ void loop() {
 	}
 
 
-	if (digitalRead(PIN_SETUP) == LOW && laststate_setup == false)
+	if (digitalRead(PIN_MODE) == LOW && laststate_mode == false)
 	{
-		time_setup = millis();
-		laststate_setup = true;
+		time_mode = millis();
+		laststate_mode = true;
 	}
-	if (digitalRead(PIN_SETUP) == HIGH && laststate_setup == true)
+	if (digitalRead(PIN_MODE) == HIGH && laststate_mode == true)
 	{
-		time_setup = millis();
-		laststate_setup = false;
+		time_mode = millis();
+		laststate_mode = false;
 	}
-	if (laststate_setup == true && millis() - time_setup > INTERVAL_SETUP)
+	if (laststate_mode == true && millis() - time_mode > INTERVAL_SETUP)
 	{
-		time_setup = millis();
-		if (!setup_mode)
-		{
-			deinitializeRegularMode();
-			initializeSetupMode();
-		}
-		else
+    Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
+
+		time_mode = millis();
+		if (mode == 1)
 		{
 			deinitializeSetupMode();
-			initializeRegularMode();
+      initializeSmartConfigMode();
+      mode = 2;
+		}
+    else if (mode == 2) {
+      deinitializeSmartConfigMode();
+      initializeRegularMode();
+      mode = 0;
+    }
+    else
+    {
+			deinitializeRegularMode();
+      initializeSetupMode();
+      mode = 1;
 		}
 	}
 
-	if (setup_mode || laststate_led)
+	if (mode > 0 || laststate_led)
 	{
-		if (millis() - time_led > INTERVAL_LED) {
+    uint16_t interval;
+    if (mode == 1) { interval = INTERVAL_LED_SETUP; }
+    else { interval = INTERVAL_LED_SMARTCONFIG; }
+
+    if (millis() - time_led > interval) {
 			time_led = millis();
 			laststate_led = !laststate_led;
 			digitalWrite(PIN_LED, !laststate_led); // LED circuit inverted

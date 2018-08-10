@@ -4,14 +4,15 @@
 #define validator_char 'x'
 
 void dumpConfig() {
-  Serial.print("Dump EEPROM ("); Serial.print(sizeof(Config)); Serial.println(" bytes):");
+  Serial.printf("Dump EEPROM (%u bytes): \n", sizeof(Config));
+  Serial.printf("-------------\t\tBEGIN OF DUMP\t\t------------\n");
   char c;
   for (int i = 0; i < sizeof(Config); i++) {
     EEPROM.get(i, c);
     Serial.print(c);
-    if (i % 64 == 0) {Serial.println();}
+    if ((i + 1) % 60 == 0 && i < sizeof(Config)) {Serial.printf("\n");}
   }
-  Serial.println();
+  Serial.printf("\n-------------\t\tEND OF DUMP\t\t------------\n");
 }
 
 bool loadConfig() {

@@ -1,32 +1,33 @@
 
 void initializeSetupMode() {
-	Serial.println("Entering setup mode.");
+    Serial.printf("\nEntering setup mode.\n\n");
 
-	Serial.print("Starting access point ...");
-	WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
-	WiFi.softAP(uid);
-	delay(500);
-	Serial.print(" started. IP address: ");
-	Serial.println(WiFi.softAPIP());
+  if (!WiFi.smartConfigDone()) {
+    Serial.printf("Starting access point ... ");
+    WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
+    WiFi.softAP(uid);
+    delay(500);
+    Serial.printf("started (%s) \n", WiFi.softAPIP().toString().c_str());
+  }
 
-	Serial.print("Starting DNS-server ...");
+	Serial.printf("Starting DNS-server ... ");
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-	dnsServer.start(PORT_DNS, "*", wifi_AP_IP);
-	Serial.println(" started");
+	dnsServer.start(PORT_DNS, "*", WiFi.localIP());
+	Serial.printf("started \n");
 
-	Serial.print("Mounting SPIFFS ...");
+	Serial.printf("Mounting SPIFFS ... ");
 	if (SPIFFS.begin()) {
-		Serial.println(" success");
+		Serial.printf("success \n");
 	}
 	else {
-		Serial.println(" error");
+		Serial.printf("error \n");
 	}
 
-	Serial.print("Binding HTTP-updater ...");
+	Serial.printf("Starting HTTP-updater ... ");
 	httpUpdater.setup(&httpServer);
-	Serial.println(" done");
-
-	Serial.print("Starting HTTP-server ...");
+	Serial.printf("done \n");
+  
+	Serial.printf("Starting HTTP-server ... ");
 	httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
 	httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
 	httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
@@ -38,58 +39,91 @@ void initializeSetupMode() {
 
 	httpServer.onNotFound(handleRedirect);
 	httpServer.begin();
-	Serial.println(" started");
-
-	setup_mode = true;
+	Serial.printf("started \n");
 }
 
 void deinitializeSetupMode() {
-	Serial.print("Closing HTTP-server ...");
+	Serial.printf("Closing HTTP-server ... ");
 	httpServer.stop();
-	Serial.println(" closed");
+	Serial.printf("closed \n");
 
-	Serial.print("Unmounting SPIFFS ...");
+	Serial.printf("Unmounting SPIFFS ... ");
 	SPIFFS.end();
-	Serial.println(" success");
+	Serial.printf("done \n");
 
-	Serial.print("Closing DNS-server ...");
+	Serial.printf("Closing DNS-server ... ");
 	dnsServer.stop();
-	Serial.println(" closed");
+	Serial.printf("closed \n");
 
-	Serial.print("Closing access point ...");
+	Serial.print("Closing access point ... ");
 	if (WiFi.softAPdisconnect(true)) {
-		Serial.println(" success");
+		Serial.printf("success \n");
 	}
 	else {
-		Serial.println(" error");
+		Serial.printf("error \n");
 	}
+}
 
-	setup_mode = false;
+void initializeSmartConfigMode() {
+  Serial.printf("\nEntering Smart Config mode.\n\n");
+
+  Serial.printf("Starting WiFi client ... ");
+  WiFi.mode(WIFI_STA);
+  delay(500);
+  Serial.printf("started \n", WiFi.softAPIP().toString().c_str());
+
+  Serial.printf("Starting Smart Config listener ... ");
+  if (WiFi.beginSmartConfig()) {
+    Serial.printf("started \n");
+  }
+  else {
+    Serial.printf("error \n");
+  }
+}
+
+void deinitializeSmartConfigMode() {
+  Serial.printf("Closing Smart Config listener ... ");
+  if (WiFi.stopSmartConfig()) {
+    Serial.printf("closed \n");
+  }
+  else {
+    Serial.printf("error \n");
+  }
+
+  if (WiFi.isConnected()) {
+    Serial.printf("Disconnecting from access point ... ");
+    if (WiFi.disconnect(true)) {
+      Serial.printf("success \n");
+    }
+    else {
+      Serial.printf("error \n");
+    }
+  }
 }
 
 void initializeRegularMode() {
-	Serial.println("Entering regular mode.");
+	Serial.printf("\nEntering regular mode.\n\n");
 
-	Serial.print("Configuring MQTT-client ...");
+	Serial.printf("Configuring MQTT-client ... ");
 	mqttClient.setServer(config.mqttserver, 1883);
 	mqttClient.setCallback(mqtt_callback);
-	Serial.println(" configured");
+	Serial.printf("configured \n");
 }
 
 void deinitializeRegularMode() {
 	if (mqttClient.connected()) {
-		Serial.print("Closing MQTT-connection ...");
+		Serial.printf("Closing MQTT-connection ... ");
 		mqttClient.disconnect();
-		Serial.println(" closed");
+		Serial.printf("closed \n");
 	}
 
 	if (WiFi.isConnected()) {
-		Serial.print("Disconnecting from access point ...");
+		Serial.printf("Disconnecting from access point ... \n");
 		if (WiFi.disconnect(true)) {
-			Serial.println(" success");
+			Serial.printf("success \n");
 		}
 		else {
-			Serial.println(" error");
+			Serial.printf("error \n");
 		}
 	}
 }
