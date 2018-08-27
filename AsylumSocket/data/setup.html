@@ -512,9 +512,12 @@
             document.getElementById("description").value = data.description || "";
             document.getElementById("mode" + parseInt(data.mode || "1")).click();
             document.getElementById("apssid").value = data.apssid || "";
+            document.getElementById("apkey").value = data.apkey || "";
             document.getElementById("locallogin").value = data.locallogin || "";
+            document.getElementById("localpassword").value = data.localpassword || "";
             document.getElementById("mqttserver").value = data.mqttserver || "";
             document.getElementById("mqttlogin").value = data.mqttlogin || "";
+            document.getElementById("mqttpassword").value = data.mqttpassword || "";
             document.getElementById("type" + parseInt(data.type || "1")).click();
             document.getElementById("dimmerrangefrom").value = data.dimmerrangefrom || "0";
             document.getElementById("dimmerrangefrom").dispatchEvent(new Event('input'));

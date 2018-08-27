@@ -17,36 +17,21 @@
 #include <PubSubClient.h>
 #include <stdlib.h>
 #include <FS.h>
-#include <Wire.h>
 #include <WiFiUdp.h>
-#include <stdio.h>
 
 // DEFINES
-#define DEVICE_TYPE         0
+#define DEVICE_TYPE         4
 
 #define DEBUG						    true
 #define DEBUG_CORE					false
-
-#if DEVICE_TYPE == 0
-#define DEVICE_PREFIX				"Socket"
-#elif DEVICE_TYPE == 1
-#define DEVICE_PREFIX				"Switch"
-#elif DEVICE_TYPE == 2
-#define DEVICE_PREFIX				"Motor"
-#elif DEVICE_TYPE == 3
-#define DEVICE_PREFIX				"Dimmer"
-#define ADDRESS_I2C_SLAVE		(0x1)
-#else
-#define DEVICE_PREFIX				"Device"
-#endif
 
 #define PORT_DNS					  53
 #define PORT_HTTP					  80
 
 #define PIN_MODE			      0	  // inverted
 #define PIN_EVENT					  0	  // inverted
-#define PIN_ACTION					12	// normal
-#define PIN_LED				      13	// inverted
+#define PIN_ACTION					13	// normal
+#define PIN_LED				      12	// inverted
 
 #define INTERVAL_SETUP		        10000
 #define INTERVAL_EVENT_DEBOUNCE	  100
@@ -57,19 +42,42 @@
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
 
+
+#if DEVICE_TYPE == 0
+#define DEVICE_PREFIX				"Socket"
+#elif DEVICE_TYPE == 1
+#define DEVICE_PREFIX				"Switch"
+#elif DEVICE_TYPE == 2
+#define DEVICE_PREFIX				"Motor"
+#elif DEVICE_TYPE == 3
+#define DEVICE_PREFIX				"Dimmer"
+#include <Wire.h>
+#define ADDRESS_I2C_SLAVE		(0x1)
+#elif DEVICE_TYPE == 4
+#define DEVICE_PREFIX				"Strip"
+#include <Adafruit_NeoPixel.h>
+#define INTERVAL_STRIP_FRAME	  10
+#define STRIP_LEDCOUNT          64
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, PIN_ACTION, NEO_GRB + NEO_KHZ800); //rgb
+#else
+#define DEVICE_PREFIX				"Device"
+#endif
+
+
 //DECLARATIONS
 //bool setup_mode = false;
-byte mode; // 0 - regular , 1 - setup , 2 - smart config
+int8_t mode = -1; // 0 - regular , 1 - setup , 2 - smart config
 
 char * uid;
 
 char * mqtt_topic_pub;
 char * mqtt_topic_sub;
+char * mqtt_topic_status;
 char * mqtt_topic_setup;
 char * mqtt_topic_reboot;
 
-volatile bool	  mqtt_value_published = false;
-volatile ulong	mqtt_value_publishedtime = 0;
+volatile bool	  mqtt_state_published = false;
+volatile ulong	mqtt_state_publishedtime = 0;
 
 bool laststate_mode = false;
 bool laststate_event = false;
@@ -82,8 +90,9 @@ ulong time_led = 0;
 ulong	time_connection_wifi = 0;
 ulong	time_connection_mqtt = 0;
 
-volatile uint16_t state;  // main var, holds 
-volatile uint16_t value;
+volatile ulong state;  // main vars, holds device state or/and value
+volatile ulong value;
+volatile ulong state_previous;
 
 DNSServer				        dnsServer;
 WiFiClient				      wifiClient;
@@ -123,36 +132,47 @@ void setup() {
 
   Serial.printf("\n\n\n");
 
-  ResolveIdentifiers();
+  resolve_identifiers();
   
 	Serial.printf("Chip started (%s) \n", uid);
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
 	delay(1000);
 
-#pragma region setup_pins
 	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
 	pinMode(PIN_EVENT, INPUT);
 	pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
 	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
 	Serial.printf("done \n");
-#pragma endregion
 
-#pragma region setup_i2c
 #if DEVICE_TYPE == 3
   Serial.printf("Joining I2C bus ... ");
 	Wire.begin(0, 2);        // join i2c bus (address optional for master)
 	Serial.printf("done \n");
 #endif
-#pragma endregion
 
-#pragma region setup_eeprom_and_config
   Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
 	EEPROM.begin(sizeof(Config));
 	Serial.printf("done \n");
 
-	Serial.printf("Loading config ... ");
+  Serial.printf("Mounting SPIFFS ... ");
+  if (SPIFFS.begin()) {
+    Serial.printf("success \n");
+  }
+  else {
+    Serial.printf("error \n");
+  }
+
+  Serial.printf("Preparing HTTP-updater ... ");
+  httpUpdater.setup(&httpServer);
+  Serial.printf("done \n");
+
+  Serial.printf("Preparing HTTP-handlers ... ");
+  httpserver_setuphandlers();
+  Serial.printf("done \n");
+  
+  Serial.printf("Loading config ... ");
 	if (loadConfig()) {
 		Serial.printf("success \n");
 
@@ -170,31 +190,21 @@ void setup() {
 		Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
 		Serial.printf(" - extension 1 / 2 / 3: %u / %u / %u \n", config.extension1, config.extension2, config.extension3);
 
-    mode = 0;
-    initializeRegularMode();
+    set_mode(0);
 	}
 	else {
 		Serial.printf("error \n");
 
 		dumpConfig();
 
-    mode = 1;
-		initializeSetupMode();
-	}
-#pragma endregion
+    set_mode(1);
+  }
 
 }
 
 void loop() {
 	
   if (mode == 1) {
-    // LOOP IN SETUP MODE
-
-    dnsServer.processNextRequest();
-    httpServer.handleClient();
-
-  } 
-  else if (mode == 2) {
     // LOOP IN SMART CONFIG MODE
 
     if (WiFi.smartConfigDone()) {
@@ -205,6 +215,15 @@ void loop() {
       {
       case WL_CONNECTED:
         Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
+
+        memset(config.apssid, 0, sizeof(config.apssid));
+        memset(config.apkey, 0, sizeof(config.apkey));
+
+        WiFi.SSID().toCharArray(config.apssid, sizeof(config.apssid) - 1);
+        WiFi.psk().toCharArray(config.apkey, sizeof(config.apkey) - 1);
+          
+        initializeSetupMode(); // cant use 'set_mode()' - we can't deinitialize smart config mode yet
+        mode = 2; // crutch
         break;
       case WL_NO_SSID_AVAIL:
         Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
@@ -220,14 +239,20 @@ void loop() {
         break;
       }
 
-      initializeSetupMode();
-      mode = 1;
+      // we have nothing to do if we can't connect to AP
     }
 
-	}
-	else
-	{
+	} else if (mode == 2) {
+    // LOOP IN SETUP MODE
+
+    dnsServer.processNextRequest();
+    httpServer.handleClient();
+
+  } else {
 		// LOOP IN REGULAR MODE
+
+    dnsServer.processNextRequest();
+    httpServer.handleClient();
 
 		if (WiFi.status() != WL_CONNECTED) {
 
@@ -275,7 +300,8 @@ void loop() {
 						mqttClient.subscribe(mqtt_topic_setup);
 						mqttClient.subscribe(mqtt_topic_reboot);
 
-						mqtt_sendstatus();
+						mqtt_sendstate();
+            mqtt_sendstatus();
 					}
 					else 
 					{
@@ -296,13 +322,7 @@ void loop() {
 		time_event = millis();
 		laststate_event = true;
 
-		if (state == 0) {
-			update_state(1);
-		}
-		else {
-			update_state(0);
-		}
-
+    invert_state();
 	}
 	if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
 	{
@@ -323,40 +343,17 @@ void loop() {
 	}
 	if (laststate_mode == true && millis() - time_mode > INTERVAL_SETUP)
 	{
+		time_mode = millis();
     Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
 
-		time_mode = millis();
-		if (mode == 1)
-		{
-			deinitializeSetupMode();
-      initializeSmartConfigMode();
-      mode = 2;
-		}
-    else if (mode == 2) {
-      deinitializeSmartConfigMode();
-      initializeRegularMode();
-      mode = 0;
-    }
-    else
-    {
-			deinitializeRegularMode();
-      initializeSetupMode();
-      mode = 1;
-		}
+    set_mode(-1); // next
 	}
 
-	if (mode > 0 || laststate_led)
-	{
-    uint16_t interval;
-    if (mode == 1) { interval = INTERVAL_LED_SETUP; }
-    else { interval = INTERVAL_LED_SMARTCONFIG; }
-
-    if (millis() - time_led > interval) {
-			time_led = millis();
-			laststate_led = !laststate_led;
-			digitalWrite(PIN_LED, !laststate_led); // LED circuit inverted
-		}
-	}
+  
+  blynk();
+#if DEVICE_TYPE == 4
+  update_strip();
+#endif
 }
 
 

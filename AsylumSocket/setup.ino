@@ -14,30 +14,8 @@ void initializeSetupMode() {
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(PORT_DNS, "*", WiFi.localIP());
 	Serial.printf("started \n");
-
-	Serial.printf("Mounting SPIFFS ... ");
-	if (SPIFFS.begin()) {
-		Serial.printf("success \n");
-	}
-	else {
-		Serial.printf("error \n");
-	}
-
-	Serial.printf("Starting HTTP-updater ... ");
-	httpUpdater.setup(&httpServer);
-	Serial.printf("done \n");
-  
+    
 	Serial.printf("Starting HTTP-server ... ");
-	httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
-	httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
-	httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
-
-	httpServer.on("/test_dim", handleTestDim);
-	httpServer.on("/submit", handleConfigSave);
-	httpServer.on("/api_config", handleApiConfig);
-	httpServer.on("/hotspot-detect.html", handleIOS);  //Apple captive portal.
-
-	httpServer.onNotFound(handleRedirect);
 	httpServer.begin();
 	Serial.printf("started \n");
 }
@@ -46,10 +24,6 @@ void deinitializeSetupMode() {
 	Serial.printf("Closing HTTP-server ... ");
 	httpServer.stop();
 	Serial.printf("closed \n");
-
-	Serial.printf("Unmounting SPIFFS ... ");
-	SPIFFS.end();
-	Serial.printf("done \n");
 
 	Serial.printf("Closing DNS-server ... ");
 	dnsServer.stop();
@@ -104,6 +78,15 @@ void deinitializeSmartConfigMode() {
 void initializeRegularMode() {
 	Serial.printf("\nEntering regular mode.\n\n");
 
+  Serial.printf("Starting DNS-server ... ");
+  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
+  dnsServer.start(PORT_DNS, "*", WiFi.localIP());
+  Serial.printf("started \n");
+
+  Serial.printf("Starting HTTP-server ... ");
+  httpServer.begin();
+  Serial.printf("started \n");
+
 	Serial.printf("Configuring MQTT-client ... ");
 	mqttClient.setServer(config.mqttserver, 1883);
 	mqttClient.setCallback(mqtt_callback);
@@ -117,8 +100,16 @@ void deinitializeRegularMode() {
 		Serial.printf("closed \n");
 	}
 
+  Serial.printf("Closing HTTP-server ... ");
+  httpServer.stop();
+  Serial.printf("closed \n");
+
+  Serial.printf("Closing DNS-server ... ");
+  dnsServer.stop();
+  Serial.printf("closed \n");
+
 	if (WiFi.isConnected()) {
-		Serial.printf("Disconnecting from access point ... \n");
+		Serial.printf("Disconnecting from access point ... ");
 		if (WiFi.disconnect(true)) {
 			Serial.printf("success \n");
 		}

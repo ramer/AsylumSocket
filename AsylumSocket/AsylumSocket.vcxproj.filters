@@ -21,6 +21,7 @@
     <None Include="tools.ino" />
     <None Include="AsylumSocket.ino" />
     <None Include="mqtt.ino" />
+    <None Include="strip.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.AsylumSocket.vsarduino.h">

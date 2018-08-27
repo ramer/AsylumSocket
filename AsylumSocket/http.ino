@@ -1,4 +1,22 @@
 
+void httpserver_setuphandlers() {
+  //httpServer.on("/setup.html", []() {
+  //  if (!httpServer.authenticate("admin", "admin")) {
+  //    return httpServer.requestAuthentication();
+  //  }
+  //});
+
+  httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
+  httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
+  httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
+
+  httpServer.on("/test_dim", handleTestDim);
+  httpServer.on("/submit", handleConfigSave);
+  httpServer.on("/api_config", handleApiConfig);
+  httpServer.on("/hotspot-detect.html", handleIOS);  //Apple captive portal.
+
+  httpServer.onNotFound(handleRedirect);
+}
 
 void handleRedirect() {
   Serial.printf("HTTP-Server: request redirected from: %s \n", httpServer.uri().c_str());
@@ -15,12 +33,12 @@ void handleConfigSave() {
   config.mode = httpServer.arg("mode").toInt();
   config.type = httpServer.arg("type").toInt();
   httpServer.arg("apssid").toCharArray(config.apssid, sizeof(config.apssid) - 1);
-  httpServer.arg("apkey").toCharArray(config.apkey, sizeof(config.apkey) - 1);
+  if (strcmp(httpServer.arg("apkey").c_str(), "          ") != 0) { httpServer.arg("apkey").toCharArray(config.apkey, sizeof(config.apkey) - 1); }
   httpServer.arg("locallogin").toCharArray(config.locallogin, sizeof(config.locallogin) - 1);
-  httpServer.arg("localpassword").toCharArray(config.localpassword, sizeof(config.localpassword) - 1);
+  if (strcmp(httpServer.arg("localpassword").c_str(), "          ") != 0) { httpServer.arg("localpassword").toCharArray(config.localpassword, sizeof(config.localpassword) - 1); }
   httpServer.arg("mqttserver").toCharArray(config.mqttserver, sizeof(config.mqttserver) - 1);
   httpServer.arg("mqttlogin").toCharArray(config.mqttlogin, sizeof(config.mqttlogin) - 1);
-  httpServer.arg("mqttpassword").toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1);
+  if (strcmp(httpServer.arg("mqttpassword").c_str(), "          ") != 0) { httpServer.arg("mqttpassword").toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1); }
   config.extension1 = httpServer.arg("dimmerrangefrom").toInt();
   config.extension2 = httpServer.arg("dimmerrangeto").toInt();
   config.extension3 = httpServer.arg("dimmerstartimpulse").toInt();
@@ -60,9 +78,12 @@ void handleApiConfig() {
   root["mode"] = config.mode;
   root["type"] = config.type;
   root["apssid"] = config.apssid;
+  root["apkey"] = "          ";
   root["locallogin"] = config.locallogin;
+  root["localpassword"] = "          ";
   root["mqttserver"] = config.mqttserver;
   root["mqttlogin"] = config.mqttlogin;
+  root["mqttpassword"] = "          ";
   root["dimmerrangefrom"] = config.extension1;
   root["dimmerrangeto"] = config.extension2;
   root["dimmerstartimpulse"] = config.extension3;
@@ -86,3 +107,5 @@ void handleIOS() {
 
   Serial.printf("HTTP-Server: IOS handled by 'SUCCESS': %s \n", httpServer.uri().c_str());
 }
+
+
