@@ -20,7 +20,7 @@
 #include <WiFiUdp.h>
 
 // DEFINES
-#define DEVICE_TYPE         4
+#define DEVICE_TYPE         0
 
 #define DEBUG						    true
 #define DEBUG_CORE					false
@@ -30,8 +30,8 @@
 
 #define PIN_MODE			      0	  // inverted
 #define PIN_EVENT					  0	  // inverted
-#define PIN_ACTION					13	// normal
-#define PIN_LED				      12	// inverted
+#define PIN_ACTION					12	// normal
+#define PIN_LED				      13	// inverted
 
 #define INTERVAL_SETUP		        10000
 #define INTERVAL_EVENT_DEBOUNCE	  100

@@ -31,6 +31,7 @@ void mqtt_sendstatus() {
     }
 
     sprintf(payload, "{\"Type\":%u,\"MAC\":\"%s\",\"IP\":\"%s\"}", DEVICE_TYPE, mac_str.c_str(), WiFi.localIP().toString().c_str());
+    mqttClient.publish(mqtt_topic_status, payload, true);
     Serial.printf(" - message sent [%s] %s \n", mqtt_topic_status, payload);
   }
 }

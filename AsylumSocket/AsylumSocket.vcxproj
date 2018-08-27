@@ -129,7 +129,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties custom_esp8266_generic_DebugLevel="None____" custom_esp8266_generic_UploadSpeed="115200" custom_esp8266_generic_Debug="Disabled" custom_esp8266_generic_FlashSize="1M64" arduino.upload.port="COM14" custom_esp8266_generic_LwIPVariant="v2mss536" />
+      <UserProperties custom_esp8266_generic_DebugLevel="None____" custom_esp8266_generic_UploadSpeed="115200" custom_esp8266_generic_Debug="Disabled" custom_esp8266_generic_FlashSize="1M64" arduino.upload.port="COM3" custom_esp8266_generic_LwIPVariant="v2mss536" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>
