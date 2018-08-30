@@ -1,31 +1,46 @@
 
 
 void update_state(ulong state_new) {
+  state_previous = (state_new > 0 && state > 0) ? 0 : state;
+  state = state_new;
 
-#if DEVICE_TYPE == 3
-  i2c_sendvalue(state_new);
-#elif DEVICE_TYPE == 4
+#if DEVICE_TYPE == 0 // Socket
+  digitalWrite(PIN_ACTION, (state == 0 ? LOW : HIGH));
+#elif DEVICE_TYPE == 2 // Motor
+  digitalWrite(PIN_ACTION_DIR, (state == 0 ? LOW : HIGH));
+  digitalWrite(PIN_ACTION, HIGH);
+  delay(INTERVAL_MOTOR);
+  digitalWrite(PIN_ACTION, LOW);
+#elif DEVICE_TYPE == 3 // Dimmer
+  i2c_sendvalue(state);
+#elif DEVICE_TYPE == 4 // Strip
   strip_updated_flag = false;
-#else
-  if (state_new == 0) {
-    digitalWrite(PIN_ACTION, LOW);
-  }
-  else
-  {
-    digitalWrite(PIN_ACTION, HIGH);
-  }
+#elif DEVICE_TYPE == 5 // Encoder
+  encoderstate = state;
+  if (state >= 250) { digitalWrite(PIN_ACTION, HIGH); }
+  else if (state > 5 && state < 250) { analogWrite(PIN_ACTION, state << 2); }  // esp8266 uses 10 bit PWM
+  else { digitalWrite(PIN_ACTION, LOW); }
 #endif
-
-  state_previous = (state_new > 0 && state > 0) ? 0 : state ;
-	state = state_new;
-	Serial.printf(" - state changed to %u \n", state);
   
+	Serial.printf(" - state changed to %u \n", state);
   mqtt_state_published = false;
 }
 
 void invert_state() {
   if (state == 0) {
+
+#if DEVICE_TYPE == 0 // Socket
     if (state_previous == 0) { state_previous = 1; }
+#elif DEVICE_TYPE == 2 // Motor
+    if (state_previous == 0) { state_previous = 1; }
+#elif DEVICE_TYPE == 3 // Dimmer
+    if (state_previous == 0) { state_previous = 1; }
+#elif DEVICE_TYPE == 4 // Strip
+    if (state_previous == 0) { state_previous = 1; }
+#elif DEVICE_TYPE == 5 // Encoder
+    if (state_previous < 5) { state_previous = 255; }
+#endif
+
     update_state(state_previous);
   }
   else {
@@ -112,6 +127,26 @@ void blynk() {
       laststate_led = !laststate_led;
       digitalWrite(PIN_LED, !laststate_led); // LED circuit inverted
     }
+  }
+}
+
+void check_mode() {
+  if (digitalRead(PIN_MODE) == LOW && laststate_mode == false)
+  {
+    time_mode = millis();
+    laststate_mode = true;
+  }
+  if (digitalRead(PIN_MODE) == HIGH && laststate_mode == true)
+  {
+    time_mode = millis();
+    laststate_mode = false;
+  }
+  if (laststate_mode == true && millis() - time_mode > INTERVAL_SETUP)
+  {
+    time_mode = millis();
+    Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
+
+    set_mode(-1); // next
   }
 }
 

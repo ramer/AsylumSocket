@@ -20,7 +20,6 @@
 #include <WiFiUdp.h>
 
 // DEFINES
-#define DEVICE_TYPE         0
 
 #define DEBUG						    true
 #define DEBUG_CORE					false
@@ -29,9 +28,6 @@
 #define PORT_HTTP					  80
 
 #define PIN_MODE			      0	  // inverted
-#define PIN_EVENT					  0	  // inverted
-#define PIN_ACTION					12	// normal
-#define PIN_LED				      13	// inverted
 
 #define INTERVAL_SETUP		        10000
 #define INTERVAL_EVENT_DEBOUNCE	  100
@@ -42,25 +38,51 @@
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
 
+#define DEVICE_TYPE           6
 
 #if DEVICE_TYPE == 0
-#define DEVICE_PREFIX				"Socket"
+  #define DEVICE_PREFIX				"Socket"
+  #define PIN_EVENT					  0	  // inverted
+  #define PIN_ACTION					12	// normal
+  #define PIN_LED				      13	// inverted
 #elif DEVICE_TYPE == 1
-#define DEVICE_PREFIX				"Switch"
+  #define DEVICE_PREFIX				"Switch"
 #elif DEVICE_TYPE == 2
-#define DEVICE_PREFIX				"Motor"
+  #define DEVICE_PREFIX				"Motor"
+  #define PIN_EVENT					  0
+  #define PIN_ACTION					12
+  #define PIN_ACTION_DIR  		13
+  #define PIN_LED				      14
+  #define INTERVAL_MOTOR		  5000
 #elif DEVICE_TYPE == 3
-#define DEVICE_PREFIX				"Dimmer"
-#include <Wire.h>
-#define ADDRESS_I2C_SLAVE		(0x1)
+  #define DEVICE_PREFIX				"Dimmer"
+  #include <Wire.h>
+  #define ADDRESS_I2C_SLAVE		(0x1)
 #elif DEVICE_TYPE == 4
-#define DEVICE_PREFIX				"Strip"
-#include <Adafruit_NeoPixel.h>
-#define INTERVAL_STRIP_FRAME	  10
-#define STRIP_LEDCOUNT          64
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, PIN_ACTION, NEO_GRB + NEO_KHZ800); //rgb
+  #define DEVICE_PREFIX				"Strip"
+  #include <Adafruit_NeoPixel.h>
+  Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, PIN_ACTION, NEO_GRB + NEO_KHZ800); //rgb
+  #define PIN_ACTION					13
+  #define PIN_LED				      14
+  #define INTERVAL_STRIP_FRAME	  10
+  #define STRIP_LEDCOUNT          121
+#elif DEVICE_TYPE == 5
+  #define DEVICE_PREFIX				"Encoder"
+  #define PIN_EVENT					  0
+  #define PIN_A					      12
+  #define PIN_B					      13
+  #define PIN_ACTION					14
+  #define PIN_LED				      2
+  volatile byte encoderstate = 0;
+#elif DEVICE_TYPE == 6
+  #define DEVICE_PREFIX				"Remote2"
+  #define PIN_EVENT					  0
+  #define PIN_EVENT2					2
+  #define TOPIC1				      "Socket-8464/pub"
+  #define TOPIC2				      "Socket-13e3/pub"
+  #define PIN_LED				      14
 #else
-#define DEVICE_PREFIX				"Device"
+  #define DEVICE_PREFIX				"Device"
 #endif
 
 
@@ -141,16 +163,34 @@ void setup() {
 
 	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
-	pinMode(PIN_EVENT, INPUT);
-	pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-	Serial.printf("done \n");
-
-#if DEVICE_TYPE == 3
+#if DEVICE_TYPE == 0 // Socket
+  pinMode(PIN_EVENT, INPUT);
+  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
+#elif DEVICE_TYPE == 2 // Motor
+  pinMode(PIN_EVENT, INPUT);
+  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
+  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
+#elif DEVICE_TYPE == 3 // Dimmer
   Serial.printf("Joining I2C bus ... ");
-	Wire.begin(0, 2);        // join i2c bus (address optional for master)
-	Serial.printf("done \n");
+  Wire.begin(0, 2);        // join i2c bus (address optional for master)
+  Serial.printf("done \n");
+#elif DEVICE_TYPE == 4 // Strip
+  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
+#elif DEVICE_TYPE == 5 // Encoder
+  pinMode(PIN_EVENT, INPUT);
+  pinMode(PIN_A, INPUT);
+  pinMode(PIN_B, INPUT);
+  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
+  attachInterrupt(PIN_A, doEncoder, CHANGE);
+#elif DEVICE_TYPE == 6 // Remote2
+  pinMode(PIN_EVENT, INPUT);
+  pinMode(PIN_EVENT2, INPUT);
+  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
 #endif
+	Serial.printf("done \n");
 
   Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
 	EEPROM.begin(sizeof(Config));
@@ -316,44 +356,103 @@ void loop() {
 	}
 
 	// LOOP ANYWAY
-
-	if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
-	{
-		time_event = millis();
-		laststate_event = true;
+#if DEVICE_TYPE == 0 // Socket
+  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = true;
 
     invert_state();
-	}
-	if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
-	{
-		time_event = millis();
-		laststate_event = false;
-	}
+  }
+  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = false;
+  }
+#elif DEVICE_TYPE == 2 // Motor
+  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = true;
 
-
-	if (digitalRead(PIN_MODE) == LOW && laststate_mode == false)
-	{
-		time_mode = millis();
-		laststate_mode = true;
-	}
-	if (digitalRead(PIN_MODE) == HIGH && laststate_mode == true)
-	{
-		time_mode = millis();
-		laststate_mode = false;
-	}
-	if (laststate_mode == true && millis() - time_mode > INTERVAL_SETUP)
-	{
-		time_mode = millis();
-    Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
-
-    set_mode(-1); // next
-	}
-
-  
-  blynk();
-#if DEVICE_TYPE == 4
+    invert_state();
+  }
+  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = false;
+  }
+#elif DEVICE_TYPE == 3 // Dimmer
+#elif DEVICE_TYPE == 4 // Strip
   update_strip();
+#elif DEVICE_TYPE == 5 // Encoder
+  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = true;
+
+    invert_state();
+  }
+  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = false;
+  }
+
+  if (state != encoderstate) { update_state(encoderstate); }
+#elif DEVICE_TYPE == 6 // Remote2
+  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = true;
+
+    mqtt_sendcommand(TOPIC1);
+  }
+  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = false;
+  }
+  if (digitalRead(PIN_EVENT2) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = true;
+
+    mqtt_sendcommand(TOPIC2);
+  }
+  if (digitalRead(PIN_EVENT2) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = false;
+  }
 #endif
+  
+  check_mode();
+  blynk();
+
+} // loop
+
+#if DEVICE_TYPE == 5 // Encoder
+//void doEncoderA()
+//{
+//  if (PastB) {
+//    if (encoderstate > 0) { encoderstate--; }
+//  }
+//  else {
+//    if (encoderstate < 255) { encoderstate++; }
+//  }
+//}
+//
+//void doEncoderB()
+//{
+//  PastB = !PastB;
+//}
+void doEncoder() {
+  if (digitalRead(PIN_A) == digitalRead(PIN_B)) { // CCW
+    if (encoderstate > 0) { encoderstate--; }
+  }
+  else { // CW
+    if (encoderstate < 255) { encoderstate++; }
+  }
 }
-
-
+#endif

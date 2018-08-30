@@ -19,6 +19,15 @@ void mqtt_sendstate() {
 	}
 }
 
+#if DEVICE_TYPE == 6 // Remote2
+void mqtt_sendcommand(char* topic) {
+  if (mqttClient.connected()) {
+    mqttClient.publish(topic, "-1", true);
+    Serial.printf(" - message sent [%s] %s \n", topic, "-1");
+  }
+}
+#endif
+
 void mqtt_sendstatus() {
   if (mqttClient.connected()) {
     char payload[64];
@@ -42,11 +51,19 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 	Serial.printf(" - message recieved [%s]: %s \n", topic, pl.c_str());
 
 	if (strcmp(topic, mqtt_topic_sub) == 0) {
-    ulong newvalue = pl.toInt();
-	  Serial.printf(" - value recieved: %u \n", newvalue);
+    if (pl == "-1") {
+      Serial.printf(" - value invert command recieved \n");
 
-		update_state(newvalue);
-		mqtt_sendstate();
+      invert_state();
+      mqtt_sendstate(); // force
+    }
+    else {
+      ulong newvalue = pl.toInt();
+      Serial.printf(" - value recieved: %u \n", newvalue);
+
+      update_state(newvalue);
+      mqtt_sendstate(); // force
+    }
 	}
 
 	if (strcmp(topic, mqtt_topic_setup) == 0) {
