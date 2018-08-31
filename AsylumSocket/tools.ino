@@ -20,6 +20,8 @@ void update_state(ulong state_new) {
   if (state >= 250) { digitalWrite(PIN_ACTION, HIGH); }
   else if (state > 5 && state < 250) { analogWrite(PIN_ACTION, state << 2); }  // esp8266 uses 10 bit PWM
   else { digitalWrite(PIN_ACTION, LOW); }
+#elif DEVICE_TYPE == 7 // Touch1
+  digitalWrite(PIN_ACTION, (state == 0 ? LOW : HIGH));
 #endif
   
 	Serial.printf(" - state changed to %u \n", state);
@@ -39,6 +41,8 @@ void invert_state() {
     if (state_previous == 0) { state_previous = 1; }
 #elif DEVICE_TYPE == 5 // Encoder
     if (state_previous < 5) { state_previous = 255; }
+#elif DEVICE_TYPE == 7 // Touch1
+    if (state_previous == 0) { state_previous = 1; }
 #endif
 
     update_state(state_previous);

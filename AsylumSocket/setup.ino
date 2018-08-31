@@ -15,8 +15,17 @@ void initializeSetupMode() {
 	dnsServer.start(PORT_DNS, "*", WiFi.localIP());
 	Serial.printf("started \n");
     
+  Serial.printf("Preparing HTTP-updater ... ");
+  httpUpdater.setup(&httpServer);
+  Serial.printf("done \n");
+
+  Serial.printf("Preparing HTTP-handlers ... ");
+  httpserver_setuphandlers();
+  Serial.printf("done \n");
+
 	Serial.printf("Starting HTTP-server ... ");
-	httpServer.begin();
+  httpServer.
+  httpServer.begin(PORT_HTTP);
 	Serial.printf("started \n");
 }
 
@@ -82,6 +91,14 @@ void initializeRegularMode() {
   dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
   dnsServer.start(PORT_DNS, "*", WiFi.localIP());
   Serial.printf("started \n");
+
+  Serial.printf("Preparing HTTP-updater ... ");
+  httpUpdater.setup(&httpServer);
+  Serial.printf("done \n");
+
+  Serial.printf("Preparing HTTP-handlers ... ");
+  httpserver_setuphandlers();
+  Serial.printf("done \n");
 
   Serial.printf("Starting HTTP-server ... ");
   httpServer.begin();

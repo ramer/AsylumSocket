@@ -38,15 +38,13 @@
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
 
-#define DEVICE_TYPE           6
+#define DEVICE_TYPE           7
 
 #if DEVICE_TYPE == 0
   #define DEVICE_PREFIX				"Socket"
   #define PIN_EVENT					  0	  // inverted
   #define PIN_ACTION					12	// normal
   #define PIN_LED				      13	// inverted
-#elif DEVICE_TYPE == 1
-  #define DEVICE_PREFIX				"Switch"
 #elif DEVICE_TYPE == 2
   #define DEVICE_PREFIX				"Motor"
   #define PIN_EVENT					  0
@@ -78,9 +76,14 @@
   #define DEVICE_PREFIX				"Remote2"
   #define PIN_EVENT					  0
   #define PIN_EVENT2					2
-  #define TOPIC1				      "Socket-8464/pub"
-  #define TOPIC2				      "Socket-13e3/pub"
+  #define TOPIC1				      "Switch-e079/pub"
+  #define TOPIC2				      "Encoder-c9b8/pub"
   #define PIN_LED				      14
+#elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
+  #define DEVICE_PREFIX				"Touch1"
+  #define PIN_EVENT					  0	  // inverted
+  #define PIN_ACTION					12	// normal
+  #define PIN_LED				      13	// inverted
 #else
   #define DEVICE_PREFIX				"Device"
 #endif
@@ -154,9 +157,9 @@ void setup() {
 
   Serial.printf("\n\n\n");
 
+  Serial.printf("Chip started. \n", uid);
   resolve_identifiers();
-  
-	Serial.printf("Chip started (%s) \n", uid);
+  Serial.printf("UID: (%s) \n", uid);
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
 	delay(1000);
@@ -189,6 +192,10 @@ void setup() {
   pinMode(PIN_EVENT, INPUT);
   pinMode(PIN_EVENT2, INPUT);
   pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
+#elif DEVICE_TYPE == 7 // Touch1
+  pinMode(PIN_EVENT, INPUT);
+  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
 #endif
 	Serial.printf("done \n");
 
@@ -203,15 +210,7 @@ void setup() {
   else {
     Serial.printf("error \n");
   }
-
-  Serial.printf("Preparing HTTP-updater ... ");
-  httpUpdater.setup(&httpServer);
-  Serial.printf("done \n");
-
-  Serial.printf("Preparing HTTP-handlers ... ");
-  httpserver_setuphandlers();
-  Serial.printf("done \n");
-  
+    
   Serial.printf("Loading config ... ");
 	if (loadConfig()) {
 		Serial.printf("success \n");
@@ -299,28 +298,28 @@ void loop() {
 			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
 				time_connection_wifi = millis();
 
-				Serial.printf("Connecting to access point: %s , password: %s ... ", config.apssid, config.apkey);
+				Serial.printf("Connecting to access point: %s , password: %s \n", config.apssid, config.apkey);
 
 				WiFi.begin(config.apssid, config.apkey);
 
-				switch (WiFi.waitForConnectResult())
-				{
-				case WL_CONNECTED:
-					Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
-					break;
-				case WL_NO_SSID_AVAIL:
-					Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
-					break;
-				case WL_CONNECT_FAILED:
-					Serial.printf("incorrect password \n");
-					break;
-				case WL_IDLE_STATUS:
-					Serial.printf("Wi-Fi is idle \n");
-					break;
-				default:
-					Serial.printf("module is not configured in station mode \n");
-					break;
-				}
+				//switch (WiFi.waitForConnectResult())
+				//{
+				//case WL_CONNECTED:
+				//	Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
+				//	break;
+				//case WL_NO_SSID_AVAIL:
+				//	Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
+				//	break;
+				//case WL_CONNECT_FAILED:
+				//	Serial.printf("incorrect password \n");
+				//	break;
+				//case WL_IDLE_STATUS:
+				//	Serial.printf("Wi-Fi is idle \n");
+				//	break;
+				//default:
+				//	Serial.printf("module is not configured in station mode \n");
+				//	break;
+				//}
 			}
 		}
 		else
@@ -421,6 +420,19 @@ void loop() {
     mqtt_sendcommand(TOPIC2);
   }
   if (digitalRead(PIN_EVENT2) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = false;
+  }
+#elif DEVICE_TYPE == 7 // Touch1
+  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  {
+    time_event = millis();
+    laststate_event = true;
+
+    invert_state();
+  }
+  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
   {
     time_event = millis();
     laststate_event = false;
