@@ -38,9 +38,8 @@
 
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
-//#define MQTT_MAX_PACKET_SIZE      524288
 
-#define DEVICE_TYPE           6
+#define DEVICE_TYPE           0
 
 #if DEVICE_TYPE == 0
   #define DEVICE_PREFIX				"Socket"
@@ -135,11 +134,8 @@ IPAddress				        wifi_AP_MASK(255, 255, 255, 0);
 //EEPROM stored configuration
 struct Config {
 	char		  reserved[8] = "";
-  uint16_t	type = DEVICE_TYPE;
-  uint16_t	state;
-	uint16_t	value;
 	char		  description[128];
-	uint16_t	mode; //reserved
+	byte    	mode;
 	char		  apssid[32];
 	char		  apkey[32];
 	char		  locallogin[32];
@@ -147,9 +143,9 @@ struct Config {
 	char		  mqttserver[256];
 	char		  mqttlogin[32];
 	char		  mqttpassword[32];
-	uint16_t	extension1;
-	uint16_t	extension2;
-	uint16_t	extension3;
+  char    	extension1[32];
+  char    	extension2[32];
+  char    	extension3[32];
 	byte		  validator;
 };
 Config config;
@@ -224,11 +220,8 @@ void setup() {
 	if (loadConfig()) {
 		Serial.printf("success \n");
 
-		Serial.printf(" - state:               %u \n", config.state);
-		Serial.printf(" - value:               %u \n", config.value);
 		Serial.printf(" - description:         %s \n", config.description);
 		Serial.printf(" - mode:                %u \n", config.mode);
-		Serial.printf(" - type:                %u \n", config.type);
 		Serial.printf(" - apssid:              %s \n", config.apssid);
 		Serial.printf(" - apkey:               %s \n", config.apkey);
 		Serial.printf(" - locallogin:          %s \n", config.locallogin);
@@ -236,7 +229,7 @@ void setup() {
 		Serial.printf(" - mqttserver:          %s \n", config.mqttserver);
 		Serial.printf(" - mqttlogin:           %s \n", config.mqttlogin);
 		Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
-		Serial.printf(" - extension 1 / 2 / 3: %u / %u / %u \n", config.extension1, config.extension2, config.extension3);
+		Serial.printf(" - extension 1 / 2 / 3: %s / %s / %s \n", config.extension1, config.extension2, config.extension3);
 
     set_mode(0);
 	}

@@ -1,11 +1,13 @@
 
+extern "C" uint32_t _SPIFFS_start;
+extern "C" uint32_t _SPIFFS_end;
+
 void httpserver_setuphandlers() {
   httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html");
   httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
   httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
   httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
-  httpServer.on("/test_dim", HTTP_POST, handleTestDim);
   httpServer.on("/submit", HTTP_POST, handleConfigSave);
   httpServer.on("/api_config", HTTP_GET, handleApiConfig);
   httpServer.on("/update", HTTP_POST, handleUpdate, handleFileUpload);
@@ -21,15 +23,34 @@ void handleUpdate(AsyncWebServerRequest *request) {
 }
 
 void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
+  bool update_spiffs = false;
+
+  if (request->hasParam("spiffs", true)) {
+    update_spiffs = (request->getParam("spiffs", true)->value() == "1");
+  }
+
   if (index == 0) {
     Serial.printf("Upload started: %s \n", filename.c_str());
     Update.runAsync(true);
-    uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-    if (Update.begin(maxSketchSpace)) {
-      Serial.printf("Updating firmware ... ");
+
+    if (update_spiffs) {
+      size_t spiffsSize = ((size_t)&_SPIFFS_end - (size_t)&_SPIFFS_start);
+      if (Update.begin(spiffsSize, U_SPIFFS)) {
+        Serial.printf("Updating SPIFFS ... ");
+      }
+      else {
+        Serial.printf("Update SPIFFS begin failure: ");
+        Update.printError(Serial);
+      }
     } else {
-      Serial.printf("Update begin failure: ");
-      Update.printError(Serial);
+      uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+      if (Update.begin(maxSketchSpace)) {
+        Serial.printf("Updating firmware ... ");
+      }
+      else {
+        Serial.printf("Update firmware begin failure: ");
+        Update.printError(Serial);
+      }
     }
   }
   
@@ -52,30 +73,12 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
   }
 }
 
-void handleTestDim(AsyncWebServerRequest *request) {
-  int newvalue;
-  if (request->hasParam("value", true)) {
-    newvalue = request->getParam("value", true)->value().toInt();
-    Serial.printf("Testing dimmer value (%i) \n", newvalue);
-    request->send(200, "text/html", "");
-  }
-}
-
 void handleConfigSave(AsyncWebServerRequest *request) {
-  if (request->hasParam("state", true)) {
-    config.state = request->getParam("state", true)->value().toInt();
-  }
-  if (request->hasParam("value", true)) {
-    config.value = request->getParam("value", true)->value().toInt();
-  }
   if (request->hasParam("description", true)) {
     request->getParam("description", true)->value().toCharArray(config.description, sizeof(config.description) - 1);
   }
   if (request->hasParam("mode", true)) {
     config.mode = request->getParam("mode", true)->value().toInt();
-  }
-  if (request->hasParam("type", true)) {
-    config.type = request->getParam("type", true)->value().toInt();
   }
   if (request->hasParam("apssid", true)) {
     request->getParam("apssid", true)->value().toCharArray(config.apssid, sizeof(config.apssid) - 1);
@@ -98,14 +101,14 @@ void handleConfigSave(AsyncWebServerRequest *request) {
   if (request->hasParam("mqttpassword", true) && strcmp(request->getParam("mqttpassword", true)->value().c_str(), "          ") != 0) {
     request->getParam("mqttpassword", true)->value().toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1);
   }
-  if (request->hasParam("dimmerrangefrom", true)) {
-    config.extension1 = request->getParam("dimmerrangefrom", true)->value().toInt();
+  if (request->hasParam("extension1", true)) {
+    request->getParam("extension1", true)->value().toCharArray(config.extension1, sizeof(config.extension1) - 1);
   }
-  if (request->hasParam("dimmerrangeto", true)) {
-    config.extension2 = request->getParam("dimmerrangeto", true)->value().toInt();
+  if (request->hasParam("extension2", true)) {
+    request->getParam("extension2", true)->value().toCharArray(config.extension2, sizeof(config.extension2) - 1);
   }
-  if (request->hasParam("dimmerstartimpulse", true)) {
-    config.extension3 = request->getParam("dimmerstartimpulse", true)->value().toInt();
+  if (request->hasParam("extension3", true)) {
+    request->getParam("extension3", true)->value().toCharArray(config.extension3, sizeof(config.extension3) - 1);
   }
 
   request->send(200, "text/html", "Configuration saved.");
@@ -124,7 +127,7 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   root["uid"] = uid;
   root["description"] = config.description;
   root["mode"] = config.mode;
-  root["type"] = config.type;
+  root["type"] = DEVICE_TYPE;
   root["apssid"] = config.apssid;
   root["apkey"] = "          ";
   root["locallogin"] = config.locallogin;
@@ -132,9 +135,9 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   root["mqttserver"] = config.mqttserver;
   root["mqttlogin"] = config.mqttlogin;
   root["mqttpassword"] = "          ";
-  root["dimmerrangefrom"] = config.extension1;
-  root["dimmerrangeto"] = config.extension2;
-  root["dimmerstartimpulse"] = config.extension3;
+  root["extension1"] = config.extension1;
+  root["extension2"] = config.extension2;
+  root["extension3"] = config.extension3;
   root.printTo(buffer, sizeof(buffer));
         
   request->send(200, "text/html", buffer);

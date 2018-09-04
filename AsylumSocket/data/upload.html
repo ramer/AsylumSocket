@@ -59,13 +59,17 @@
 
 <body>
   <header>
-    <h1 id="header-device-name"></h1>
     <h2>Обновление ПО устройства</h2>
   </header>
   <form method="POST" action="/update" enctype="multipart/form-data">
     <h3>Укажите файл для загрузки</h3>
     <div>
-      <input id="file_input" type="file" name="update">
+      <input type="checkbox" id="spiffs" name="spiffs" value="1">
+      <label for="spiffs">Обновление файловой системы</label>
+    </div>
+    <br>
+    <div>
+      <input type="file" name="update">
     </div>
     <br>
     <div>

@@ -20,11 +20,8 @@ bool loadConfig() {
   if (config.validator != validator_char) {
     
     config.reserved[0] = 0;
-    config.state = 0;
-    config.value = 0;
     config.description[0] = 0;
     config.mode = 1;
-    config.type = 1;
     config.apssid[0] = 0;
     config.apkey[0] = 0;
     config.locallogin[0] = 0;
@@ -32,9 +29,9 @@ bool loadConfig() {
     config.mqttserver[0] = 0;
     config.mqttlogin[0] = 0;
     config.mqttpassword[0] = 0;
-    config.extension1 = 0;
-    config.extension2 = 0;
-    config.extension3 = 0;
+    config.extension1[0] = 0;
+    config.extension2[0] = 0;
+    config.extension3[0] = 0;
     config.validator = 0;
 
     return false;

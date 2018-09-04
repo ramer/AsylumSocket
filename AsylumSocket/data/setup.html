@@ -171,7 +171,7 @@
 <body>
     <a href="/upload.html">обновление ПО</a>
     <header>
-        <h1 id="header-device-name"></h1>
+        <h1 id="uid"></h1>
         <h2>Первоначальная настройка устройства</h2>
     </header>
     <div id="loading-placeholer">Загрузка...</div>
@@ -219,7 +219,7 @@
         <div class="field-group">
             <label for="locallogin" class="label">Имя пользователя:</label>
             <div class="field">
-                <input id="locallogin" type="text" name="locallogin" maxlength="32" placeholder="admin" value="" required />
+                <input id="locallogin" type="text" name="locallogin" maxlength="32" placeholder="admin" value="" />
             </div>
         </div>
         <div class="field-group">
@@ -232,7 +232,7 @@
         <div class="field-group">
             <label for="mqttserver" class="label">Адрес сервера:</label>
             <div class="field">
-                <input id="mqttserver" type="text" name="mqttserver" maxlength="64" placeholder="192.168.1.123" value="" disabled="true" />
+                <input id="mqttserver" type="text" name="mqttserver" maxlength="64" placeholder="192.168.1.123" value="" disabled="true" required/>
             </div>
         </div>
         <div class="field-group">
@@ -247,58 +247,35 @@
                 <input id="mqttpassword" type="password" name="mqttpassword" maxlength="32" disabled="true" />
             </div>
         </div>
-        <h3>Дополнительные настройки</h3>
+        <h3>Дополнительные параметры</h3>
         <div class="field-group">
-            <div class="label">Тип выключателя:</div>
-            <div class="field" onchange="changeMode(event);">
-                <div>
-                    <label>
-                        <input id="type1" name="type" type="radio" value="1" checked="checked" />Кнопочный
-                    </label>
-                </div>
-                <div>
-                    <label>
-                        <input id="type2" name="type" type="radio" value="2">Энкодер
-                    </label>
-                </div>
-            </div>
-        </div>
-        <div class="field-group">
-            <label for="dimmerrangefrom" class="label">Диммировать от (0-255):</label>
-            <div class="field flexy">
-                <div class="first">
-                    <input type="number" name="dimmerrangefrom" id="dimmerrangefrom" style="width: 75px;" oninput="changedDimValue(this, 'dimmerrangefromperc');"
-                           defaultValue="0" min="0" max="255" step="0" value="0" required /> = <span id="dimmerrangefromperc"></span>          %
-                </div>
-                <div>
-                    <input id="dimmerrangefromtest" class="testbutton" type="button" value="💡 тест" onclick="runDimTest('dimmerrangefrom');">
-                </div>
-            </div>
-        </div>
-        <div class="field-group">
-            <label for="dimmerrangeto" class="label">Диммировать до (0-255):</label>
-            <div class="field flexy">
-                <div class="first">
-                    <input type="number" name="dimmerrangeto" id="dimmerrangeto" style="width: 75px;" oninput="changedDimValue(this, 'dimmerrangetoperc');"
-                           defaultValue="0" min="0" max="255" step="0" value="255" required /> = <span id="dimmerrangetoperc"></span>          %
-                </div>
-                <div>
-                    <input id="dimmerrangetotest" class="testbutton" type="button" value="💡 тест" onclick="runDimTest('dimmerrangeto');">
-                </div>
-            </div>
-        </div>
-        <div class="field-group">
-            <div class="label">Тип ламп:</div>
+            <label for="extension1" class="label">Параметр 1:</label>
             <div class="field">
-                <label class="check" for="dimmerstartimpulse">
-                    <input name="dimmerstartimpulse" id="dimmerstartimpulse" type="checkbox" value="someshit" />энергосберегающие лампы
-                </label>
+                <div class="first">
+                    <input id="extension1" type="text" name="extension1" maxlength="32" value=""/>
+                </div>
+            </div>
+        </div>
+        <div class="field-group">
+            <label for="extension2" class="label">Параметр 2:</label>
+            <div class="field">
+                <div class="first">
+                    <input id="extension2" type="text" name="extension2" maxlength="32" value=""/>
+                </div>
+            </div>
+        </div>
+        <div class="field-group">
+            <label for="extension3" class="label">Параметр 3:</label>
+            <div class="field">
+                <div class="first">
+                    <input id="extension3" type="text" name="extension3" maxlength="32" value=""/>
+                </div>
             </div>
         </div>
         <div class="field-group">
             <div class="label"></div>
             <div class="field">
-                <input id="saveForm" name="saveForm" type="submit" value="Сохранить и перезагрузить">
+                <input id="saveForm" type="submit" name="saveForm" value="Сохранить и применить">
             </div>
         </div>
 
@@ -343,7 +320,7 @@
          */
         function changeMode(event) {
             var mqtt = event.target.value == 3 ? true : false;
-            ["locallogin", "localpassword"].forEach(function (id) {
+            /* ["locallogin", "localpassword"].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (id != "localpassword") {
                     el.required = !mqtt;
@@ -352,10 +329,10 @@
                     }
                 }
                 el.disabled = mqtt;
-            });
+            }); */
             ["mqttserver", "mqttlogin", "mqttpassword"].forEach(function (id) {
                 var el = document.getElementById(id);
-                if (id != "mqttpassword") {
+                if (id == "mqttserver") {
                     el.required = mqtt;
                     if (!mqtt) {
                         el.removeAttribute('required');
@@ -365,75 +342,6 @@
             });
         }
 
-
-        /*
-         * Run dimmer test
-         */
-        function runDimTest(input_id) {
-            // disable buttons for 5 seconds
-            var $buttons = document.getElementsByClassName('testbutton');
-            for (var i = 0; i < $buttons.length; i++) {
-                $buttons[i].disabled = true;
-                setTimeout(function ($button) {
-                    $button.disabled = false;
-                }, 5000, $buttons[i]);
-            }
-
-            // get value
-            var $input = document.getElementById(input_id);
-            var val = parseInt($input.value);
-            if (isNaN(val) === true) val = 0;
-            val = val < 0 ? 0 : val;
-            val = val > 255 ? 255 : val;
-
-            // submit data
-            var xmlhttp = window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
-            xmlhttp.open("POST", "/test_dim", true);
-            xmlhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            xmlhttp.send("value=" + val);
-        }
-
-
-        /*
-         * When dimmer value changed
-         */
-        function changedDimValue($input, id) {
-            var min = 0;
-            var max = 255;
-            var value = parseInt($input.value);
-
-            // adjust minimum and maximum
-            switch ($input.id) {
-                case "dimmerrangefrom":
-                    max = document.getElementById("dimmerrangeto").value;
-                    break;
-                case "dimmerrangeto":
-                    min = document.getElementById("dimmerrangefrom").value;
-                    break;
-            }
-            $input.max = max;
-            $input.min = min;
-
-            // normalize value
-            if (isNaN(value) === true) value = 0;
-            if (value < min) value = min;
-            if (value > max) value = max;
-            $input.value = value;
-
-            // print percent
-            if (isNaN(value) === true) value = 0;
-            document.getElementById(id).innerText = Math.round(parseInt(value) / 255 * 100);
-
-            // adjust range on other inputs
-            switch ($input.id) {
-                case "dimmerrangefrom":
-                    document.getElementById("dimmerrangeto").min = $input.value;
-                    break;
-                case "dimmerrangeto":
-                    document.getElementById("dimmerrangefrom").max = $input.value;
-                    break;
-            }
-        }
 
         /*
          * Load JSON from URL
@@ -466,16 +374,12 @@
                 if (!e.disabled &&
                     e.name != "" &&
                     e.name !== "saveForm" &&
-                    (e.type == "text" || e.type == "password" || e.type == "number")) {
+                    (e.type == "text" || e.type == "password")) {
                     formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
                     continue;
                 }
-                if ((e.name == "mode" || e.name == "type") && e.checked) {
+                if ((e.name == "mode") && e.checked) {
                     formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
-                    continue;
-                }
-                if (e.name == "dimmerstartimpulse") {
-                    formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(+e.checked));
                     continue;
                 }
             }
@@ -502,13 +406,10 @@
         /*
          * Run this on load
          */
-        // fire oninput events for some inputs
-        document.getElementById("dimmerrangefrom").oninput();
-        document.getElementById("dimmerrangeto").oninput();
 
         // load settings
         function fillForm(data) {
-            document.getElementById("header-device-name").textContent = data.uid || "";
+            document.getElementById("uid").textContent = data.uid || "";
             document.getElementById("description").value = data.description || "";
             document.getElementById("mode" + parseInt(data.mode || "1")).click();
             document.getElementById("apssid").value = data.apssid || "";
@@ -518,12 +419,9 @@
             document.getElementById("mqttserver").value = data.mqttserver || "";
             document.getElementById("mqttlogin").value = data.mqttlogin || "";
             document.getElementById("mqttpassword").value = data.mqttpassword || "";
-            document.getElementById("type" + parseInt(data.type || "1")).click();
-            document.getElementById("dimmerrangefrom").value = data.dimmerrangefrom || "0";
-            document.getElementById("dimmerrangefrom").dispatchEvent(new Event('input'));
-            document.getElementById("dimmerrangeto").value = data.dimmerrangeto || "255";
-            document.getElementById("dimmerrangeto").dispatchEvent(new Event('input'));
-            document.getElementById("dimmerstartimpulse").checked = (data.dimmerstartimpulse == 1);
+            document.getElementById("extension1").value = data.extension1 || "";
+            document.getElementById("extension2").value = data.extension2 || "";
+            document.getElementById("extension3").value = data.extension3 || "";
 
             // show form
             document.getElementById("loading-placeholer").style.display = "none";
