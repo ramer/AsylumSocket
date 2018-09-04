@@ -1,75 +1,123 @@
 
 void httpserver_setuphandlers() {
-  //httpServer.on("/setup.html", []() {
-  //  if (!httpServer.authenticate("admin", "admin")) {
-  //    return httpServer.requestAuthentication();
-  //  }
-  //});
-
+  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html");
   httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
   httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
   httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
-  httpServer.on("/test_dim", handleTestDim);
-  httpServer.on("/submit", handleConfigSave);
-  httpServer.on("/api_config", handleApiConfig);
-  httpServer.on("/hotspot-detect.html", handleIOS);  //Apple captive portal.
-
+  httpServer.on("/test_dim", HTTP_POST, handleTestDim);
+  httpServer.on("/submit", HTTP_POST, handleConfigSave);
+  httpServer.on("/api_config", HTTP_GET, handleApiConfig);
+  httpServer.on("/update", HTTP_POST, handleUpdate, handleFileUpload);
+  
   httpServer.onNotFound(handleRedirect);
 }
 
-void handleRedirect() {
-  Serial.printf("HTTP-Server: request redirected from: %s \n", httpServer.uri().c_str());
-
-  httpServer.sendHeader("Location", String("http://") + httpServer.client().localIP().toString() + String("/setup.html"), true);
-  httpServer.send ( 302, "text/plain", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-  httpServer.client().stop(); // Stop is needed because we sent no content length
+void handleUpdate(AsyncWebServerRequest *request) {
+  has_new_update = !Update.hasError();
+  AsyncWebServerResponse *response = request->beginResponse(200, "text/html", has_new_update ? "<HTML><BODY><H3>Firmware updated</h3></BODY></HTML>" : "<HTML><BODY><H3>Firmware update failure</h3></BODY></HTML>");
+  response->addHeader("Connection", "close");
+  request->send(response);
 }
 
-void handleConfigSave() {
-  config.state = httpServer.arg("state").toInt();
-  config.value = httpServer.arg("value").toInt();
-  httpServer.arg("description").toCharArray(config.description, sizeof(config.description) - 1);
-  config.mode = httpServer.arg("mode").toInt();
-  config.type = httpServer.arg("type").toInt();
-  httpServer.arg("apssid").toCharArray(config.apssid, sizeof(config.apssid) - 1);
-  if (strcmp(httpServer.arg("apkey").c_str(), "          ") != 0) { httpServer.arg("apkey").toCharArray(config.apkey, sizeof(config.apkey) - 1); }
-  httpServer.arg("locallogin").toCharArray(config.locallogin, sizeof(config.locallogin) - 1);
-  if (strcmp(httpServer.arg("localpassword").c_str(), "          ") != 0) { httpServer.arg("localpassword").toCharArray(config.localpassword, sizeof(config.localpassword) - 1); }
-  httpServer.arg("mqttserver").toCharArray(config.mqttserver, sizeof(config.mqttserver) - 1);
-  httpServer.arg("mqttlogin").toCharArray(config.mqttlogin, sizeof(config.mqttlogin) - 1);
-  if (strcmp(httpServer.arg("mqttpassword").c_str(), "          ") != 0) { httpServer.arg("mqttpassword").toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1); }
-  config.extension1 = httpServer.arg("dimmerrangefrom").toInt();
-  config.extension2 = httpServer.arg("dimmerrangeto").toInt();
-  config.extension3 = httpServer.arg("dimmerstartimpulse").toInt();
-
-  httpServer.send(200, "text/html", "Configutation saved. Rebooting."); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-
-  delay(1000);
+void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
+  if (index == 0) {
+    Serial.printf("Upload started: %s \n", filename.c_str());
+    Update.runAsync(true);
+    uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
+    if (Update.begin(maxSketchSpace)) {
+      Serial.printf("Updating firmware ... ");
+    } else {
+      Serial.printf("Update begin failure: ");
+      Update.printError(Serial);
+    }
+  }
   
+  if (!Update.hasError()) {
+    if (Update.write(data, len) != len) {
+      Serial.printf("write error: ");
+      Update.printError(Serial);
+      Serial.printf(" \n");
+    }
+  }
+
+  if (final) {
+    if (Update.end(true)) {
+      Serial.printf("done. \n");
+    }
+    else {
+      Serial.printf("Update end failure: ");
+      Update.printError(Serial);
+    }
+  }
+}
+
+void handleTestDim(AsyncWebServerRequest *request) {
+  int newvalue;
+  if (request->hasParam("value", true)) {
+    newvalue = request->getParam("value", true)->value().toInt();
+    Serial.printf("Testing dimmer value (%i) \n", newvalue);
+    request->send(200, "text/html", "");
+  }
+}
+
+void handleConfigSave(AsyncWebServerRequest *request) {
+  if (request->hasParam("state", true)) {
+    config.state = request->getParam("state", true)->value().toInt();
+  }
+  if (request->hasParam("value", true)) {
+    config.value = request->getParam("value", true)->value().toInt();
+  }
+  if (request->hasParam("description", true)) {
+    request->getParam("description", true)->value().toCharArray(config.description, sizeof(config.description) - 1);
+  }
+  if (request->hasParam("mode", true)) {
+    config.mode = request->getParam("mode", true)->value().toInt();
+  }
+  if (request->hasParam("type", true)) {
+    config.type = request->getParam("type", true)->value().toInt();
+  }
+  if (request->hasParam("apssid", true)) {
+    request->getParam("apssid", true)->value().toCharArray(config.apssid, sizeof(config.apssid) - 1);
+  }
+  if (request->hasParam("apkey", true) && strcmp(request->getParam("apkey", true)->value().c_str(), "          ") != 0) {
+    request->getParam("apkey", true)->value().toCharArray(config.apkey, sizeof(config.apkey) - 1);
+  }
+  if (request->hasParam("locallogin", true)) {
+    request->getParam("locallogin", true)->value().toCharArray(config.locallogin, sizeof(config.locallogin) - 1);
+  }
+  if (request->hasParam("localpassword", true) && strcmp(request->getParam("localpassword", true)->value().c_str(), "          ") != 0) {
+    request->getParam("localpassword", true)->value().toCharArray(config.localpassword, sizeof(config.localpassword) - 1);
+  }
+  if (request->hasParam("mqttserver", true)) {
+    request->getParam("mqttserver", true)->value().toCharArray(config.mqttserver, sizeof(config.mqttserver) - 1);
+  }
+  if (request->hasParam("mqttlogin", true)) {
+    request->getParam("mqttlogin", true)->value().toCharArray(config.mqttlogin, sizeof(config.mqttlogin) - 1);
+  }
+  if (request->hasParam("mqttpassword", true) && strcmp(request->getParam("mqttpassword", true)->value().c_str(), "          ") != 0) {
+    request->getParam("mqttpassword", true)->value().toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1);
+  }
+  if (request->hasParam("dimmerrangefrom", true)) {
+    config.extension1 = request->getParam("dimmerrangefrom", true)->value().toInt();
+  }
+  if (request->hasParam("dimmerrangeto", true)) {
+    config.extension2 = request->getParam("dimmerrangeto", true)->value().toInt();
+  }
+  if (request->hasParam("dimmerstartimpulse", true)) {
+    config.extension3 = request->getParam("dimmerstartimpulse", true)->value().toInt();
+  }
+
+  request->send(200, "text/html", "Configuration saved.");
+
   Serial.printf("Saving config ... ");
   saveConfig();
   Serial.printf("success \n");
- 
-  deinitializeSetupMode();
-  initializeRegularMode();
-  mode = 0;
+
+  has_new_config = true;
 }
 
-void handleTestDim() {
-  int newvalue;
-  newvalue = httpServer.arg("value").toInt();
-  httpServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  httpServer.sendHeader("Pragma", "no-cache");
-  httpServer.sendHeader("Expires", "-1");
-  httpServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  httpServer.send(200, "text/html", ""); // Empty content inhibits Content-length header so we have to close the socket ourselves.
-  httpServer.client().stop(); // Stop is needed because we sent no content length
-
-  Serial.printf("Testing dimmer value (%i) \n", newvalue);
-}
-
-void handleApiConfig() {
+void handleApiConfig(AsyncWebServerRequest *request) {
   DynamicJsonBuffer  jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
   char buffer[1024];
@@ -89,23 +137,14 @@ void handleApiConfig() {
   root["dimmerstartimpulse"] = config.extension3;
   root.printTo(buffer, sizeof(buffer));
         
-  httpServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  httpServer.sendHeader("Pragma", "no-cache");
-  httpServer.sendHeader("Expires", "-1");
-  httpServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  httpServer.send(200, "text/html", buffer);
+  request->send(200, "text/html", buffer);
 
   Serial.printf("HTTP-Server: config requested \n");
 }
 
-void handleIOS() {
-  httpServer.sendHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-  httpServer.sendHeader("Pragma", "no-cache");
-  httpServer.sendHeader("Expires", "-1");
-  httpServer.setContentLength(CONTENT_LENGTH_UNKNOWN);
-  httpServer.send(200, "text/html", "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>");
-
-  Serial.printf("HTTP-Server: IOS handled by 'SUCCESS': %s \n", httpServer.uri().c_str());
+void handleRedirect(AsyncWebServerRequest *request) {
+  Serial.printf("HTTP-Server: request redirected from: %s \n", request->url().c_str());
+  AsyncWebServerResponse *response = request->beginResponse(302, "text/plain", "");
+  response->addHeader("Location", String("http://") + (WiFi.getMode() == WIFI_AP ? WiFi.softAPIP().toString() : WiFi.localIP().toString()) + String("/setup.html"));
+  request->send(response);
 }
-
-

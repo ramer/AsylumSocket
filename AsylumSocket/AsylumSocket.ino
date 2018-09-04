@@ -9,7 +9,8 @@
 
 #include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#include <ESPAsyncTCP.h>
+#include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 #include <ESP8266mDNS.h>
 #include <EEPROM.h>
@@ -37,8 +38,9 @@
 
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
+//#define MQTT_MAX_PACKET_SIZE      524288
 
-#define DEVICE_TYPE           7
+#define DEVICE_TYPE           6
 
 #if DEVICE_TYPE == 0
   #define DEVICE_PREFIX				"Socket"
@@ -76,7 +78,7 @@
   #define DEVICE_PREFIX				"Remote2"
   #define PIN_EVENT					  0
   #define PIN_EVENT2					2
-  #define TOPIC1				      "Switch-e079/pub"
+  #define TOPIC1				      "Touch1-e079/pub"
   #define TOPIC2				      "Encoder-c9b8/pub"
   #define PIN_LED				      14
 #elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
@@ -108,6 +110,9 @@ bool laststate_mode = false;
 bool laststate_event = false;
 bool laststate_led   = false;
 
+bool has_new_update = false;
+bool has_new_config = false;
+
 ulong time_mode = 0;
 ulong time_event = 0;
 ulong time_led = 0;
@@ -122,7 +127,7 @@ volatile ulong state_previous;
 DNSServer				        dnsServer;
 WiFiClient				      wifiClient;
 PubSubClient			      mqttClient(wifiClient);
-ESP8266WebServer		    httpServer(PORT_HTTP);
+AsyncWebServer          httpServer(PORT_HTTP);
 ESP8266HTTPUpdateServer httpUpdater(DEBUG);
 IPAddress				        wifi_AP_IP  (192, 168, 4, 1);
 IPAddress				        wifi_AP_MASK(255, 255, 255, 0);
@@ -156,7 +161,6 @@ void setup() {
   delay(1000);
 
   Serial.printf("\n\n\n");
-
   Serial.printf("Chip started. \n", uid);
   resolve_identifiers();
   Serial.printf("UID: (%s) \n", uid);
@@ -211,6 +215,11 @@ void setup() {
     Serial.printf("error \n");
   }
     
+  Serial.printf("Starting HTTP-server ... ");
+  httpserver_setuphandlers();
+  httpServer.begin();
+  Serial.printf("started \n");
+
   Serial.printf("Loading config ... ");
 	if (loadConfig()) {
 		Serial.printf("success \n");
@@ -285,13 +294,9 @@ void loop() {
     // LOOP IN SETUP MODE
 
     dnsServer.processNextRequest();
-    httpServer.handleClient();
 
   } else {
 		// LOOP IN REGULAR MODE
-
-    dnsServer.processNextRequest();
-    httpServer.handleClient();
 
 		if (WiFi.status() != WL_CONNECTED) {
 
@@ -301,30 +306,10 @@ void loop() {
 				Serial.printf("Connecting to access point: %s , password: %s \n", config.apssid, config.apkey);
 
 				WiFi.begin(config.apssid, config.apkey);
-
-				//switch (WiFi.waitForConnectResult())
-				//{
-				//case WL_CONNECTED:
-				//	Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
-				//	break;
-				//case WL_NO_SSID_AVAIL:
-				//	Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
-				//	break;
-				//case WL_CONNECT_FAILED:
-				//	Serial.printf("incorrect password \n");
-				//	break;
-				//case WL_IDLE_STATUS:
-				//	Serial.printf("Wi-Fi is idle \n");
-				//	break;
-				//default:
-				//	Serial.printf("module is not configured in station mode \n");
-				//	break;
-				//}
 			}
 		}
 		else
 		{
-
 			if (!mqttClient.loop()) {
 
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
@@ -439,6 +424,8 @@ void loop() {
   }
 #endif
   
+  check_newupdate();
+  check_newconfig();
   check_mode();
   blynk();
 

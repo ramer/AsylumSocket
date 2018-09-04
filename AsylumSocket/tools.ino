@@ -134,6 +134,21 @@ void blynk() {
   }
 }
 
+void check_newupdate() {
+  if (has_new_update) {
+    has_new_update = false;
+    Serial.printf("\n\nChip restarting.\n\n");
+    delay(1000);
+    ESP.restart();
+  }
+}
+void check_newconfig() {
+  if (has_new_config) {
+    has_new_config = false;
+    set_mode(0);
+  }
+}
+
 void check_mode() {
   if (digitalRead(PIN_MODE) == LOW && laststate_mode == false)
   {
@@ -155,19 +170,14 @@ void check_mode() {
 }
 
 void reboot() {
-	if (mode == 1) {
-		deinitializeSetupMode();
-	}
-  else if (mode == 2) {
-    deinitializeSmartConfigMode();
-  }
-	else
-	{
-		deinitializeRegularMode();
-	}
+  if (mode == 0) { deinitializeRegularMode(); }
+  if (mode == 1) { deinitializeSmartConfigMode(); }
+  if (mode == 2) { deinitializeSetupMode(); }
   
 	Serial.printf("\n\nChip restarted.\n\n");
   
+  delay(3000);
+
 	ESP.restart();
 }
 

@@ -4,6 +4,7 @@ void initializeSetupMode() {
 
   if (!WiFi.smartConfigDone()) {
     Serial.printf("Starting access point ... ");
+    WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
     WiFi.softAP(uid);
     delay(500);
@@ -12,31 +13,14 @@ void initializeSetupMode() {
 
 	Serial.printf("Starting DNS-server ... ");
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-	dnsServer.start(PORT_DNS, "*", WiFi.localIP());
-	Serial.printf("started \n");
-    
-  Serial.printf("Preparing HTTP-updater ... ");
-  httpUpdater.setup(&httpServer);
-  Serial.printf("done \n");
-
-  Serial.printf("Preparing HTTP-handlers ... ");
-  httpserver_setuphandlers();
-  Serial.printf("done \n");
-
-	Serial.printf("Starting HTTP-server ... ");
-  httpServer.
-  httpServer.begin(PORT_HTTP);
+	dnsServer.start(PORT_DNS, "*", WiFi.softAPIP());
 	Serial.printf("started \n");
 }
 
 void deinitializeSetupMode() {
-	Serial.printf("Closing HTTP-server ... ");
-	httpServer.stop();
-	Serial.printf("closed \n");
-
-	Serial.printf("Closing DNS-server ... ");
-	dnsServer.stop();
-	Serial.printf("closed \n");
+  Serial.printf("Closing DNS-server ... ");
+  dnsServer.stop();
+  Serial.printf("closed \n");
 
 	Serial.print("Closing access point ... ");
 	if (WiFi.softAPdisconnect(true)) {
@@ -45,6 +29,13 @@ void deinitializeSetupMode() {
 	else {
 		Serial.printf("error \n");
 	}
+  Serial.printf("Closing WiFi client ... ");
+  if (WiFi.disconnect(true)) {
+    Serial.printf("closed \n");
+  }
+  else {
+    Serial.printf("error \n");
+  }
 }
 
 void initializeSmartConfigMode() {
@@ -53,7 +44,7 @@ void initializeSmartConfigMode() {
   Serial.printf("Starting WiFi client ... ");
   WiFi.mode(WIFI_STA);
   delay(500);
-  Serial.printf("started \n", WiFi.softAPIP().toString().c_str());
+  Serial.printf("started \n");
 
   Serial.printf("Starting Smart Config listener ... ");
   if (WiFi.beginSmartConfig()) {
@@ -73,36 +64,19 @@ void deinitializeSmartConfigMode() {
     Serial.printf("error \n");
   }
 
-  if (WiFi.isConnected()) {
-    Serial.printf("Disconnecting from access point ... ");
-    if (WiFi.disconnect(true)) {
-      Serial.printf("success \n");
-    }
-    else {
-      Serial.printf("error \n");
-    }
+  Serial.printf("Closing WiFi client ... ");
+  if (WiFi.disconnect(true)) {
+    Serial.printf("closed \n");
+  }
+  else {
+    Serial.printf("error \n");
   }
 }
 
 void initializeRegularMode() {
 	Serial.printf("\nEntering regular mode.\n\n");
 
-  Serial.printf("Starting DNS-server ... ");
-  dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
-  dnsServer.start(PORT_DNS, "*", WiFi.localIP());
-  Serial.printf("started \n");
-
-  Serial.printf("Preparing HTTP-updater ... ");
-  httpUpdater.setup(&httpServer);
-  Serial.printf("done \n");
-
-  Serial.printf("Preparing HTTP-handlers ... ");
-  httpserver_setuphandlers();
-  Serial.printf("done \n");
-
-  Serial.printf("Starting HTTP-server ... ");
-  httpServer.begin();
-  Serial.printf("started \n");
+  WiFi.mode(WIFI_STA);
 
 	Serial.printf("Configuring MQTT-client ... ");
 	mqttClient.setServer(config.mqttserver, 1883);
@@ -117,15 +91,7 @@ void deinitializeRegularMode() {
 		Serial.printf("closed \n");
 	}
 
-  Serial.printf("Closing HTTP-server ... ");
-  httpServer.stop();
-  Serial.printf("closed \n");
-
-  Serial.printf("Closing DNS-server ... ");
-  dnsServer.stop();
-  Serial.printf("closed \n");
-
-	if (WiFi.isConnected()) {
+  if (WiFi.isConnected()) {
 		Serial.printf("Disconnecting from access point ... ");
 		if (WiFi.disconnect(true)) {
 			Serial.printf("success \n");
