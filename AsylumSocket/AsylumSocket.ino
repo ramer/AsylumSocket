@@ -35,7 +35,7 @@
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
 
-#define DEVICE_TYPE           7
+#define DEVICE_TYPE           0
 
 #if DEVICE_TYPE == 0
   #define DEVICE_PREFIX				"Socket"
@@ -149,15 +149,11 @@ void setup() {
 	if (DEBUG) { Serial.begin(74880); }
 	Serial.setDebugOutput(DEBUG_CORE);
   
-  delay(1000);
-
   Serial.printf("\n\n\n");
   Serial.printf("Chip started. \n", uid);
   resolve_identifiers();
   Serial.printf("UID: (%s) \n", uid);
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
-
-	delay(1000);
 
 	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
