@@ -7,17 +7,12 @@
 //ESP8266
 //Flash size: 1M (64K SPIFFS)
 
-#include <ESP8266HTTPUpdateServer.h>
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
-#include <ESP8266mDNS.h>
 #include <EEPROM.h>
-#include <ArduinoJson.h>
 #include <PubSubClient.h>
-#include <stdlib.h>
-#include <FS.h>
 #include <WiFiUdp.h>
 
 // DEFINES
@@ -127,7 +122,6 @@ DNSServer				        dnsServer;
 WiFiClient				      wifiClient;
 PubSubClient			      mqttClient(wifiClient);
 AsyncWebServer          httpServer(PORT_HTTP);
-ESP8266HTTPUpdateServer httpUpdater(DEBUG);
 IPAddress				        wifi_AP_IP  (192, 168, 4, 1);
 IPAddress				        wifi_AP_MASK(255, 255, 255, 0);
 
