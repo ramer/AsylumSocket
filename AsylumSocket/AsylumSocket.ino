@@ -13,6 +13,7 @@
 #include <DNSServer.h>
 #include <EEPROM.h>
 #include <PubSubClient.h>
+#include <ArduinoJson.h>
 #include <WiFiUdp.h>
 
 // DEFINES
@@ -34,7 +35,7 @@
 #define INTERVAL_CONNECTION_WIFI	5000
 #define INTERVAL_CONNECTION_MQTT	5000
 
-#define DEVICE_TYPE           0
+#define DEVICE_TYPE           7
 
 #if DEVICE_TYPE == 0
   #define DEVICE_PREFIX				"Socket"

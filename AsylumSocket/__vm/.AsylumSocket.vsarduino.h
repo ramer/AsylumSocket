@@ -113,6 +113,7 @@ typedef long __PTRDIFF_TYPE__;
 
 #include "AsylumSocket.ino"
 #include "config.ino"
+#include "html.ino"
 #include "http.ino"
 #include "mqtt.ino"
 #include "setup.ino"

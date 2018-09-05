@@ -4,22 +4,20 @@ extern "C" uint32_t _SPIFFS_end;
 
 void httpserver_setuphandlers() {
   httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html");
-  httpServer.serveStatic("/setup.html", SPIFFS, "/setup.html");
-  httpServer.serveStatic("/upload.html", SPIFFS, "/upload.html");
   httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
   httpServer.on("/submit", HTTP_POST, handleConfigSave);
   httpServer.on("/api_config", HTTP_GET, handleApiConfig);
+  httpServer.on("/upload", HTTP_GET, handleUpload);
   httpServer.on("/update", HTTP_POST, handleUpdate, handleFileUpload);
   
   httpServer.onNotFound(handleRedirect);
 }
 
+
 void handleUpdate(AsyncWebServerRequest *request) {
   has_new_update = !Update.hasError();
-  AsyncWebServerResponse *response = request->beginResponse(200, "text/html", has_new_update ? "<HTML><BODY><H3>Firmware updated</h3></BODY></HTML>" : "<HTML><BODY><H3>Firmware update failure</h3></BODY></HTML>");
-  response->addHeader("Connection", "close");
-  request->send(response);
+  request->send_P(200, "text/html", Update.hasError() ? updatefailure_html : updatesuccess_html);
 }
 
 void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -151,3 +149,8 @@ void handleRedirect(AsyncWebServerRequest *request) {
   response->addHeader("Location", String("http://") + (WiFi.getMode() == WIFI_AP ? WiFi.softAPIP().toString() : WiFi.localIP().toString()) + String("/setup.html"));
   request->send(response);
 }
+
+void handleUpload(AsyncWebServerRequest *request) {
+  request->send_P(200, "text/html", upload_html);
+}
+
