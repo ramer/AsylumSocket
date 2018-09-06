@@ -19,7 +19,8 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define INVERT_STATE_ON_BOOT    true        // needed for switches, which turning on/off by power
+#define INVERT_STATE_ON_BOOT    false        // needed for switches, which turning on/off by power
+
 #define DEVICE_TYPE             0
 
 //    0 - Socket
@@ -223,11 +224,6 @@ void setup() {
   else {
     Serial.printf("error \n");
   }
-    
-  Serial.printf("Starting HTTP-server ... ");
-  httpserver_setuphandlers();
-  httpServer.begin();
-  Serial.printf("started \n");
 
   Serial.printf("Loading config ... ");
 	if (loadConfig()) {
@@ -253,7 +249,11 @@ void setup() {
 
     set_mode(1);
   }
-
+  
+  Serial.printf("Starting HTTP-server ... ");
+  httpserver_setuphandlers();
+  httpServer.begin();
+  Serial.printf("started \n");
 }
 
 void loop() {

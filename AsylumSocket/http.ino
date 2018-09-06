@@ -3,7 +3,7 @@ extern "C" uint32_t _SPIFFS_start;
 extern "C" uint32_t _SPIFFS_end;
 
 void httpserver_setuphandlers() {
-  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html");
+  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html").setAuthentication(config.locallogin, config.localpassword);
   httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
   httpServer.on("/submit", HTTP_POST, handleConfigSave);
@@ -13,7 +13,6 @@ void httpserver_setuphandlers() {
   
   httpServer.onNotFound(handleRedirect);
 }
-
 
 void handleUpdate(AsyncWebServerRequest *request) {
   bool update_spiffs = false;
