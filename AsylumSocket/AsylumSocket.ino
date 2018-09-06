@@ -16,26 +16,43 @@
 #include <ArduinoJson.h>
 #include <WiFiUdp.h>
 
+
+// GLOBAL FIRMWARE CONFIGURATION
+
+#define INVERT_STATE_ON_BOOT    true        // needed for switches, which turning on/off by power
+#define DEVICE_TYPE             0
+
+//    0 - Socket
+//    1 - reserved
+//    2 - Motor
+//    3 - Dimmer
+//    4 - Strip
+//    5 - Encoder
+//    6 - Remote2
+//    7 - Touch1
+
+
 // DEFINES
 
-#define DEBUG						    true
-#define DEBUG_CORE					false
+#define DEBUG						              true
+#define DEBUG_CORE					          false
 
-#define PORT_DNS					  53
-#define PORT_HTTP					  80
+#define PORT_DNS					            53
+#define PORT_HTTP					            80
 
-#define PIN_MODE			      0	  // inverted
+#define PIN_MODE			                0	  // inverted
 
-#define INTERVAL_SETUP		        10000
-#define INTERVAL_EVENT_DEBOUNCE	  100
-#define INTERVAL_LED_SETUP	      500
-#define INTERVAL_LED_SMARTCONFIG  250
-#define INTERVAL_MQTT_PUBLISH		  200
+#define INTERVAL_SETUP		            10000
+#define INTERVAL_EVENT_DEBOUNCE	      100
+#define INTERVAL_LED_SETUP	          500
+#define INTERVAL_LED_SMARTCONFIG      250
+#define INTERVAL_MQTT_PUBLISH		      200
 
-#define INTERVAL_CONNECTION_WIFI	5000
-#define INTERVAL_CONNECTION_MQTT	5000
+#define INTERVAL_MODE_TIMEOUT         600000
 
-#define DEVICE_TYPE           0
+#define INTERVAL_CONNECTION_WIFI	    5000
+#define INTERVAL_CONNECTION_MQTT	    5000
+
 
 #if DEVICE_TYPE == 0
   #define DEVICE_PREFIX				"Socket"
@@ -87,7 +104,7 @@
 
 
 //DECLARATIONS
-//bool setup_mode = false;
+
 int8_t mode = -1; // 0 - regular , 1 - setup , 2 - smart config
 
 char * uid;
@@ -97,6 +114,7 @@ char * mqtt_topic_sub;
 char * mqtt_topic_status;
 char * mqtt_topic_setup;
 char * mqtt_topic_reboot;
+char * mqtt_topic_erase;
 
 volatile bool	  mqtt_state_published = false;
 volatile ulong	mqtt_state_publishedtime = 0;
@@ -109,6 +127,7 @@ bool has_new_update = false;
 bool has_new_config = false;
 
 ulong time_mode = 0;
+ulong time_mode_set = 0;
 ulong time_event = 0;
 ulong time_led = 0;
 
@@ -116,7 +135,6 @@ ulong	time_connection_wifi = 0;
 ulong	time_connection_mqtt = 0;
 
 volatile ulong state;  // main vars, holds device state or/and value
-volatile ulong value;
 volatile ulong state_previous;
 
 DNSServer				        dnsServer;
@@ -127,8 +145,10 @@ IPAddress				        wifi_AP_IP  (192, 168, 4, 1);
 IPAddress				        wifi_AP_MASK(255, 255, 255, 0);
 
 //EEPROM stored configuration
+
 struct Config {
-	char		  reserved[8] = "";
+  ulong     state;
+	char		  reserved[12] = "";
 	char		  description[128];
 	byte    	mode;
 	char		  apssid[32];
@@ -142,12 +162,13 @@ struct Config {
   char    	extension2[32];
   char    	extension3[32];
 	byte		  validator;
-};
-Config config;
+} config;
 
 void setup() {
-	if (DEBUG) { Serial.begin(74880); }
-	Serial.setDebugOutput(DEBUG_CORE);
+#if DEBUG == true
+  Serial.begin(74880);
+  Serial.setDebugOutput(DEBUG_CORE);
+#endif
   
   Serial.printf("\n\n\n");
   Serial.printf("Chip started. \n", uid);
@@ -193,6 +214,7 @@ void setup() {
   Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
 	EEPROM.begin(sizeof(Config));
 	Serial.printf("done \n");
+  if (INVERT_STATE_ON_BOOT) { loadState(); invert_state(); }
 
   Serial.printf("Mounting SPIFFS ... ");
   if (SPIFFS.begin()) {
@@ -287,9 +309,12 @@ void loop() {
 			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
 				time_connection_wifi = millis();
 
-				Serial.printf("Connecting to access point: %s , password: %s \n", config.apssid, config.apkey);
-
-				WiFi.begin(config.apssid, config.apkey);
+        if (strcmp(config.apssid, "") != 0) {
+          Serial.printf("Connecting to access point: %s , password: %s \n", config.apssid, config.apkey);
+          WiFi.begin(config.apssid, config.apkey);
+        } else {
+          Serial.printf("Connecting to access point error: no SSID specified \n");
+        }
 			}
 		}
 		else
@@ -306,7 +331,8 @@ void loop() {
 						
             mqttClient.subscribe(mqtt_topic_sub);
 						mqttClient.subscribe(mqtt_topic_setup);
-						mqttClient.subscribe(mqtt_topic_reboot);
+            mqttClient.subscribe(mqtt_topic_reboot);
+            mqttClient.subscribe(mqtt_topic_erase);
 
 						mqtt_sendstate();
             mqtt_sendstatus();

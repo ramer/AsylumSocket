@@ -1,7 +1,7 @@
 
 /** Load WLAN credentials from EEPROM */
 
-#define validator_char 'x'
+#define EEPROM_VALIDATOR 'x'
 
 void dumpConfig() {
   Serial.printf("Dump EEPROM (%u bytes): \n", sizeof(Config));
@@ -17,7 +17,7 @@ void dumpConfig() {
 
 bool loadConfig() {
   EEPROM.get(0, config);
-  if (config.validator != validator_char) {
+  if (config.validator != EEPROM_VALIDATOR) {
     
     config.reserved[0] = 0;
     config.description[0] = 0;
@@ -40,18 +40,28 @@ bool loadConfig() {
   }
 }
 
-void clearConfig() {
+void saveConfig() {
+  eraseConfig();
+  config.validator = EEPROM_VALIDATOR;
+  EEPROM.put(0, config);
+  EEPROM.commit();
+}
+
+void eraseConfig() {
   for (int i = 0; i < sizeof(Config); i++) {
     EEPROM.write(i, 255);
   }
   EEPROM.commit();
 }
 
-void saveConfig() {
-  clearConfig();
-  config.validator = validator_char;
-  EEPROM.put(0, config);
-  EEPROM.commit();
+void loadState() {
+  loadConfig();
+  state = config.state;
+}
+
+void saveState() {
+  config.state = state;
+  saveConfig();
 }
 
 

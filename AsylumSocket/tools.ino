@@ -24,6 +24,8 @@ void update_state(ulong state_new) {
   digitalWrite(PIN_ACTION, (state == 0 ? LOW : HIGH));
 #endif
   
+  if (INVERT_STATE_ON_BOOT) { saveState(); }
+
 	Serial.printf(" - state changed to %u \n", state);
   mqtt_state_published = false;
 }
@@ -69,6 +71,8 @@ void set_mode(int8_t mode_new) {
   if (mode == 0) { initializeRegularMode(); }
   if (mode == 1) { initializeSmartConfigMode(); }
   if (mode == 2) { initializeSetupMode(); }
+
+  time_mode_set = millis();
 }
 
 void resolve_identifiers() {
@@ -95,6 +99,8 @@ void resolve_identifiers() {
   mqtt_topic_setup = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_setup, topic_temp.c_str());
   topic_temp = uid_temp + "/reboot";
   mqtt_topic_reboot = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_reboot, topic_temp.c_str());
+  topic_temp = uid_temp + "/erase";
+  mqtt_topic_erase = new char[topic_temp.length() + 1]; strcpy(mqtt_topic_erase, topic_temp.c_str());
 }
 
 
@@ -166,6 +172,11 @@ void check_mode() {
     Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
 
     set_mode(-1); // next
+  }
+  if (mode != 0 && millis() - time_mode_set > INTERVAL_MODE_TIMEOUT) { 
+    Serial.printf("Setup timeout (%u ms) \n", INTERVAL_MODE_TIMEOUT);
+
+    set_mode(0);
   }
 }
 

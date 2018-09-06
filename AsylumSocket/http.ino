@@ -16,8 +16,18 @@ void httpserver_setuphandlers() {
 
 
 void handleUpdate(AsyncWebServerRequest *request) {
-  has_new_update = !Update.hasError();
+  bool update_spiffs = false;
+
+  if (request->hasParam("spiffs", true)) {
+    update_spiffs = (request->getParam("spiffs", true)->value() == "1");
+  }
+
+  has_new_update = !update_spiffs && !Update.hasError();
   request->send_P(200, "text/html", Update.hasError() ? updatefailure_html : updatesuccess_html);
+}
+
+void handleUpload(AsyncWebServerRequest *request) {
+  request->send_P(200, "text/html", upload_html);
 }
 
 void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
@@ -119,9 +129,10 @@ void handleConfigSave(AsyncWebServerRequest *request) {
 }
 
 void handleApiConfig(AsyncWebServerRequest *request) {
+  AsyncResponseStream *response = request->beginResponseStream("application/json");
   DynamicJsonBuffer  jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
-  char buffer[1024];
+
   root["uid"] = uid;
   root["description"] = config.description;
   root["mode"] = config.mode;
@@ -141,16 +152,29 @@ void handleApiConfig(AsyncWebServerRequest *request) {
 
   int n = WiFi.scanComplete();
   if (n > 0) {
-    for (int i = 0; i < n; ++i) {
-      JsonObject& network = networks.createNestedObject();
-      network["ssid"] = WiFi.SSID(i);
-      network["name"] = (WiFi.encryptionType(i) == ENC_TYPE_NONE ? "🔓 " : "🔒 ") + get_quality(WiFi.RSSI(i)) + " &emsp; " + WiFi.SSID(i) + " &emsp; " + (WiFi.isHidden(i) ? "👁" : " ");
+    int8_t lastmax = 0;
+
+    for (int j = 0; j < n; j++) {
+      int8_t max = -100;
+      
+      for (int i = 0; i < n; i++) {
+        if (WiFi.RSSI(i) > max && WiFi.RSSI(i) < lastmax) { max = WiFi.RSSI(i); };
+      }
+
+      lastmax = max;
+
+      for (int i = 0; i < n; i++) {
+        if (WiFi.RSSI(i) == max) {
+          JsonObject& network = networks.createNestedObject();
+          network["ssid"] = WiFi.SSID(i);
+          network["name"] = (WiFi.encryptionType(i) == ENC_TYPE_NONE ? "🔓 " : "🔒 ") + get_quality(WiFi.RSSI(i)) + " &emsp; " + WiFi.SSID(i) + " &emsp; " + (WiFi.isHidden(i) ? "👁" : " ");
+        }
+      }
     }
   }
 
-  root.printTo(buffer, sizeof(buffer));
-        
-  request->send(200, "application/json", buffer);
+  root.printTo(*response);
+  request->send(response);
 
   Serial.printf("HTTP-Server: config requested \n");
 }
@@ -162,7 +186,4 @@ void handleRedirect(AsyncWebServerRequest *request) {
   request->send(response);
 }
 
-void handleUpload(AsyncWebServerRequest *request) {
-  request->send_P(200, "text/html", upload_html);
-}
 

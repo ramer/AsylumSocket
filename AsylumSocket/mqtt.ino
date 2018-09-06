@@ -67,10 +67,17 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 	}
 
 	if (strcmp(topic, mqtt_topic_setup) == 0) {
+    Serial.printf(" - setup mode command recieved \n");
     set_mode(2);
 	}
 
 	if (strcmp(topic, mqtt_topic_reboot) == 0) {
-		reboot();
+    Serial.printf(" - reboot command recieved \n");
+    reboot();
 	}
+
+  if (strcmp(topic, mqtt_topic_erase) == 0) {
+    Serial.printf(" - erase config command recieved \n");
+    eraseConfig();
+  }
 }
