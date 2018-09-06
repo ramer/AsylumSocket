@@ -3,6 +3,15 @@ void initializeSetupMode() {
     Serial.printf("\nEntering setup mode.\n\n");
 
   if (!WiFi.smartConfigDone()) {
+    Serial.printf("Starting WiFi client ... ");
+    WiFi.mode(WIFI_STA);
+    Serial.printf("started \n");
+
+    Serial.printf("Scanning WiFi networks ... ");
+    WiFi.scanDelete();
+    int n = WiFi.scanNetworks(false, true);
+    Serial.printf("done. Found %u networks \n", n);
+
     Serial.printf("Starting access point ... ");
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
@@ -43,8 +52,12 @@ void initializeSmartConfigMode() {
 
   Serial.printf("Starting WiFi client ... ");
   WiFi.mode(WIFI_STA);
-  delay(500);
   Serial.printf("started \n");
+
+  Serial.printf("Scanning WiFi networks ... ");
+  WiFi.scanDelete();
+  int n = WiFi.scanNetworks(false, true);
+  Serial.printf("done. Found %u networks \n", n);
 
   Serial.printf("Starting Smart Config listener ... ");
   if (WiFi.beginSmartConfig()) {
@@ -76,7 +89,14 @@ void deinitializeSmartConfigMode() {
 void initializeRegularMode() {
 	Serial.printf("\nEntering regular mode.\n\n");
 
+  Serial.printf("Starting WiFi client ... ");
   WiFi.mode(WIFI_STA);
+  Serial.printf("started \n");
+
+  Serial.printf("Scanning WiFi networks ... ");
+  WiFi.scanDelete();
+  int n = WiFi.scanNetworks(false, true);
+  Serial.printf("done. Found %u networks \n", n);
 
 	Serial.printf("Configuring MQTT-client ... ");
 	mqttClient.setServer(config.mqttserver, 1883);

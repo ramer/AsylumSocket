@@ -250,11 +250,8 @@
             <label for="apssid" class="label">SSID точки доступа:</label>
             <div class="field">
                 <div class="field_absolute_wrapper">
-                    <select class="field_absolute_back" onchange="document.getElementById('apssid').value=this.options[this.selectedIndex].text;">
+                    <select class="field_absolute_back" id="networks" onchange="document.getElementById('apssid').value=this.options[this.selectedIndex].value;">
                         <option></option>
-                        <option value="one">one</option>
-                        <option value="two">two</option>
-                        <option value="three">three</option>
                     </select>
                     <input class="field_absolute_front" id="apssid" type="text" name="apssid" maxlength="32" placeholder="Мой Wi-Fi" value="" onfocus="this.select()" required/>
                 </div>
@@ -473,6 +470,15 @@
             document.getElementById("extension1").value = data.extension1 || "";
             document.getElementById("extension2").value = data.extension2 || "";
             document.getElementById("extension3").value = data.extension3 || "";
+
+            var networks = data.networks || "[]";
+            var ddlnetworks = document.getElementById("networks");
+            for (var i = 0; i < networks.length; i++) {
+                var option = document.createElement("OPTION");
+                option.innerHTML = networks[i].name;
+                option.value = networks[i].ssid;
+                ddlnetworks.options.add(option);
+            }
 
             // show form
             document.getElementById("loading-placeholer").style.display = "none";

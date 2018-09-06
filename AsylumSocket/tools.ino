@@ -1,4 +1,4 @@
-
+﻿
 
 void update_state(ulong state_new) {
   state_previous = (state_new > 0 && state > 0) ? 0 : state;
@@ -166,6 +166,27 @@ void check_mode() {
     Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
 
     set_mode(-1); // next
+  }
+}
+
+String get_quality(int32_t rssi) {
+  switch ((rssi + 110) / 10)
+  {
+  case 5:
+    return "▇";
+    break;
+  case 4:
+    return "▆";
+    break;
+  case 3:
+    return "▅";
+    break;
+  case 2:
+    return "▃";
+    break;
+  default:
+    return "▁";
+    break;
   }
 }
 

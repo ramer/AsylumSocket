@@ -1,4 +1,4 @@
-
+﻿
 extern "C" uint32_t _SPIFFS_start;
 extern "C" uint32_t _SPIFFS_end;
 
@@ -136,9 +136,21 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   root["extension1"] = config.extension1;
   root["extension2"] = config.extension2;
   root["extension3"] = config.extension3;
+
+  JsonArray& networks = root.createNestedArray("networks");
+
+  int n = WiFi.scanComplete();
+  if (n > 0) {
+    for (int i = 0; i < n; ++i) {
+      JsonObject& network = networks.createNestedObject();
+      network["ssid"] = WiFi.SSID(i);
+      network["name"] = (WiFi.encryptionType(i) == ENC_TYPE_NONE ? "🔓 " : "🔒 ") + get_quality(WiFi.RSSI(i)) + " &emsp; " + WiFi.SSID(i) + " &emsp; " + (WiFi.isHidden(i) ? "👁" : " ");
+    }
+  }
+
   root.printTo(buffer, sizeof(buffer));
         
-  request->send(200, "text/html", buffer);
+  request->send(200, "application/json", buffer);
 
   Serial.printf("HTTP-Server: config requested \n");
 }
