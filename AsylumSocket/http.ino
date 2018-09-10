@@ -138,7 +138,7 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   DynamicJsonBuffer  jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
 
-  root["uid"] = uid;
+  root["uid"] = device.uid;
   root["description"] = config.description;
   root["mode"] = config.mode;
   root["type"] = DEVICE_TYPE;

@@ -19,7 +19,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE             7
+#define DEVICE_TYPE  0
 
 //    0 - Socket
 //    1 - reserved
@@ -35,29 +35,18 @@
 
 #define DEBUG						              true
 #define DEBUG_CORE					          false
-
 #define PORT_DNS					            53
 #define PORT_HTTP					            80
-
 #define PIN_MODE			                0	  // inverted
-
+#define PIN_LED                       13  // inverted
 #define INTERVAL_SETUP		            10000
-#define INTERVAL_EVENT_DEBOUNCE	      100
-#define INTERVAL_LED_SETUP	          500
-#define INTERVAL_LED_SMARTCONFIG      250
-#define INTERVAL_MQTT_PUBLISH		      200
-
 #define INTERVAL_MODE_TIMEOUT         600000
-
 #define INTERVAL_CONNECTION_WIFI	    5000
 #define INTERVAL_CONNECTION_MQTT	    5000
 
-
 #if DEVICE_TYPE == 0
-  #define DEVICE_PREFIX				"Socket"
-  #define PIN_EVENT					  0	  // inverted
-  #define PIN_ACTION					12	// normal
-  #define PIN_LED				      13	// inverted
+  #include "src/Socket.h"
+  Socket device(0, 12);
 #elif DEVICE_TYPE == 2
   #define DEVICE_PREFIX				"Motor"
   #define PIN_EVENT					  0
@@ -93,10 +82,9 @@
   #define TOPIC2				      "Encoder-c9b8/pub"
   #define PIN_LED				      14
 #elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
-  #define DEVICE_PREFIX				"Touch1"
-  #define PIN_EVENT					  0	  // inverted
-  #define PIN_ACTION					12	// normal
-  #define PIN_LED				      13	// inverted
+  #include "src/TouchT1.h"
+  #define DEVICE_PREFIX "TouchT1"
+  TouchT1 device(0, 12, 13);
 #else
   #define DEVICE_PREFIX				"Device"
 #endif
@@ -106,28 +94,14 @@
 
 int8_t mode = -1; // 0 - regular , 1 - setup , 2 - smart config
 
-char * uid;
-
-char * mqtt_topic_pub;
-char * mqtt_topic_sub;
-char * mqtt_topic_status;
-char * mqtt_topic_setup;
-char * mqtt_topic_reboot;
-char * mqtt_topic_erase;
-
-volatile bool	  mqtt_state_published = false;
-volatile ulong	mqtt_state_publishedtime = 0;
-
 bool laststate_mode = false;
-bool laststate_event = false;
-bool laststate_led   = false;
+bool laststate_led = false;
 
 bool has_new_update = false;
 bool has_new_config = false;
 
 ulong time_mode = 0;
 ulong time_mode_set = 0;
-ulong time_event = 0;
 ulong time_led = 0;
 
 ulong	time_connection_wifi = 0;
@@ -171,46 +145,43 @@ void setup() {
 #endif
   
   Serial.printf("\n\n\n");
-  Serial.printf("Chip started. \n", uid);
-  resolve_identifiers();
-  Serial.printf("UID: (%s) \n", uid);
+  Serial.printf("Chip started. \n");
+  device.init(&mqttClient);
+
+  Serial.printf("UID: (%s) \n", device.uid);
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
 	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
-#if DEVICE_TYPE == 0 // Socket
-  pinMode(PIN_EVENT, INPUT);
-  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-#elif DEVICE_TYPE == 2 // Motor
-  pinMode(PIN_EVENT, INPUT);
-  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
-  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
-#elif DEVICE_TYPE == 3 // Dimmer
-  Serial.printf("Joining I2C bus ... ");
-  Wire.begin(0, 2);        // join i2c bus (address optional for master)
+  pinMode(PIN_LED, OUTPUT);	  digitalWrite(PIN_LED, HIGH);	    // default initial value
   Serial.printf("done \n");
-#elif DEVICE_TYPE == 4 // Strip
-  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-#elif DEVICE_TYPE == 5 // Encoder
-  pinMode(PIN_EVENT, INPUT);
-  pinMode(PIN_A, INPUT);
-  pinMode(PIN_B, INPUT);
-  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
-  attachInterrupt(PIN_A, doEncoder, CHANGE);
-#elif DEVICE_TYPE == 6 // Remote2
-  pinMode(PIN_EVENT, INPUT);
-  pinMode(PIN_EVENT2, INPUT);
-  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
-#elif DEVICE_TYPE == 7 // Touch1
-  pinMode(PIN_EVENT, INPUT);
-  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-#endif
-	Serial.printf("done \n");
 
+//#if DEVICE_TYPE == 0 // Socket
+//#elif DEVICE_TYPE == 2 // Motor
+//  pinMode(PIN_EVENT, INPUT);
+//  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
+//  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
+//#elif DEVICE_TYPE == 3 // Dimmer
+//  Serial.printf("Joining I2C bus ... ");
+//  Wire.begin(0, 2);        // join i2c bus (address optional for master)
+//  Serial.printf("done \n");
+//#elif DEVICE_TYPE == 4 // Strip
+//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
+//#elif DEVICE_TYPE == 5 // Encoder
+//  pinMode(PIN_EVENT, INPUT);
+//  pinMode(PIN_A, INPUT);
+//  pinMode(PIN_B, INPUT);
+//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+//	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
+//  attachInterrupt(PIN_A, doEncoder, CHANGE);
+//#elif DEVICE_TYPE == 6 // Remote2
+//  pinMode(PIN_EVENT, INPUT);
+//  pinMode(PIN_EVENT2, INPUT);
+//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
+//#elif DEVICE_TYPE == 7 // Touch1
+//#endif
+  
   Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
 	EEPROM.begin(sizeof(Config));
 	Serial.printf("done \n");
@@ -243,16 +214,16 @@ void setup() {
     switch (config.onboot)
     {
     case 1:
-      update_state(1);
+      device.update_state(1);
       break;
     case 2:
-      update_state(config.state);
+      device.update_state(config.state);
       break;
     case 3:
-      invert_state();
+      device.invert_state();
       break;
     default:
-      update_state(0);
+      device.update_state(0);
       break;
     }
 
@@ -341,17 +312,17 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.mqttserver, uid, config.mqttlogin, config.mqttpassword);
+					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.mqttserver, device.uid, config.mqttlogin, config.mqttpassword);
 
-					if (mqttClient.connect(uid, config.mqttlogin, config.mqttpassword)) {
+					if (mqttClient.connect(device.uid, config.mqttlogin, config.mqttpassword)) {
 						Serial.printf("connected, state = %i \n", mqttClient.state());
 						
-            mqttClient.subscribe(mqtt_topic_sub);
-						mqttClient.subscribe(mqtt_topic_setup);
-            mqttClient.subscribe(mqtt_topic_reboot);
-            mqttClient.subscribe(mqtt_topic_erase);
+            mqttClient.subscribe(device.mqtt_topic_sub);
+						mqttClient.subscribe(device.mqtt_topic_setup);
+            mqttClient.subscribe(device.mqtt_topic_reboot);
+            mqttClient.subscribe(device.mqtt_topic_erase);
 
-						mqtt_sendstate();
+            device.publishstate();
             mqtt_sendstatus();
 					}
 					else 
@@ -361,25 +332,23 @@ void loop() {
 				}
 			}
 			else {
-				mqtt_check_value_published();
+
+        device.check_published();
+
 			}
 		}
 	}
 
 	// LOOP ANYWAY
-#if DEVICE_TYPE == 0 // Socket
-  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
-  {
-    time_event = millis();
-    laststate_event = true;
 
-    invert_state();
-  }
-  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
-  {
-    time_event = millis();
-    laststate_event = false;
-  }
+  device.check_buttons();
+  check_newupdate();
+  check_newconfig();
+  check_mode();
+  blynk();
+
+#if DEVICE_TYPE == 0 // Socket
+
 #elif DEVICE_TYPE == 2 // Motor
   if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
   {
@@ -437,24 +406,8 @@ void loop() {
     laststate_event = false;
   }
 #elif DEVICE_TYPE == 7 // Touch1
-  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
-  {
-    time_event = millis();
-    laststate_event = true;
 
-    invert_state();
-  }
-  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
-  {
-    time_event = millis();
-    laststate_event = false;
-  }
 #endif
-  
-  check_newupdate();
-  check_newconfig();
-  check_mode();
-  blynk();
 
 } // loop
 
