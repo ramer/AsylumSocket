@@ -15,7 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="config.ino" />
     <None Include="http.ino" />
     <None Include="setup.ino" />
     <None Include="tools.ino" />
@@ -23,6 +22,7 @@
     <None Include="mqtt.ino" />
     <None Include="strip.ino" />
     <None Include="html.ino" />
+    <None Include="eeprom.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.AsylumSocket.vsarduino.h">

@@ -27,17 +27,17 @@
                 <div class="field" onchange="changeMode(event);">
                     <div>
                         <label>
-                            <input id="mode1" name="mode" type="radio" value="1" checked="checked" />Автономно
+                            <input id="mode0" name="mode" type="radio" value="0" checked="checked" />Автономно
                         </label>
                     </div>
                     <div>
                         <label>
-                            <input id="mode2" name="mode" type="radio" value="2">В локальной сети
+                            <input id="mode1" name="mode" type="radio" value="1" />В локальной сети
                         </label>
                     </div>
                     <div>
                         <label>
-                            <input id="mode3" name="mode" type="radio" value="3">С сервером MQTT
+                            <input id="mode2" name="mode" type="radio" value="2" />С сервером MQTT
                         </label>
                     </div>
                 </div>
@@ -47,10 +47,10 @@
                 <label for="apssid" class="label">SSID точки доступа:</label>
                 <div class="field">
                     <div class="field_absolute_wrapper">
-                        <select class="field_absolute_back" id="networks" onchange="document.getElementById('apssid').value=this.options[this.selectedIndex].value;">
+                        <select class="field_absolute_back" id="networks" onchange="document.getElementById('apssid').value=this.options[this.selectedIndex].value;" disabled="true">
                             <option></option>
                         </select>
-                        <input class="field_absolute_front" id="apssid" type="text" name="apssid" maxlength="32" placeholder="Мой Wi-Fi" value="" onfocus="this.select()" required/>
+                        <input class="field_absolute_front" id="apssid" type="text" name="apssid" maxlength="32" placeholder="Мой Wi-Fi" value="" onfocus="this.select()" disabled="true"/>
                     </div>
                 </div>
             </div>
@@ -93,6 +93,46 @@
                 </div>
             </div>
             <h3>Дополнительные параметры</h3>
+            <div class="field-group">
+                <div class="label">Состояние при включении устройства:</div>
+                <div class="field">
+                    <div>
+                        <label>
+                            <input id="onboot0" name="onboot" type="radio" value="0" checked="checked" />Выключено
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input id="onboot1" name="onboot" type="radio" value="1" />Включено
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input id="onboot2" name="onboot" type="radio" value="2" />Последнее состояние
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input id="onboot3" name="onboot" type="radio" value="3" />Инвертированное состояние
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="field-group">
+                <div class="label">Световой индикатор:</div>
+                <div class="field">
+                    <div>
+                        <label>
+                            <input id="onboardled0" name="onboardled" type="radio" value="0" checked="checked" />Выключен
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            <input id="onboardled1" name="onboardled" type="radio" value="1" />Включен
+                        </label>
+                    </div>
+                </div>
+            </div>
             <div class="field-group">
                 <label for="extension1" class="label">Параметр 1:</label>
                 <div class="field">
@@ -164,17 +204,18 @@
          * Change mode of operation
          */
         function changeMode(event) {
-            var mqtt = event.target.value == 3 ? true : false;
-            /* ["locallogin", "localpassword"].forEach(function (id) {
+            var local = event.target.value == 0 ? true : false;
+            var mqtt = event.target.value == 2 ? true : false;
+            ["networks", "apssid"].forEach(function (id) {
                 var el = document.getElementById(id);
-                if (id != "localpassword") {
-                    el.required = !mqtt;
-                    if (mqtt) {
+                if (id != "networks") {
+                    el.required = !local;
+                    if (local) {
                         el.removeAttribute('required');
                     }
                 }
-                el.disabled = mqtt;
-            }); */
+                el.disabled = local;
+            });
             ["mqttserver", "mqttlogin", "mqttpassword"].forEach(function (id) {
                 var el = document.getElementById(id);
                 if (id == "mqttserver") {
@@ -227,6 +268,14 @@
                     formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
                     continue;
                 }
+                if ((e.name == "onboot") && e.checked) {
+                    formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
+                    continue;
+                }
+                if ((e.name == "onboardled") && e.checked) {
+                    formData.push(encodeURIComponent(e.name) + "=" + encodeURIComponent(e.value));
+                    continue;
+                }
             }
             formData = formData.join("&");
 
@@ -256,7 +305,7 @@
         function fillForm(data) {
             document.getElementById("uid").textContent = data.uid || "";
             document.getElementById("description").value = data.description || "";
-            document.getElementById("mode" + parseInt(data.mode || "1")).click();
+            document.getElementById("mode" + parseInt(data.mode || "0")).click();
             document.getElementById("apssid").value = data.apssid || "";
             document.getElementById("apkey").value = data.apkey || "";
             document.getElementById("locallogin").value = data.locallogin || "";
@@ -264,6 +313,8 @@
             document.getElementById("mqttserver").value = data.mqttserver || "";
             document.getElementById("mqttlogin").value = data.mqttlogin || "";
             document.getElementById("mqttpassword").value = data.mqttpassword || "";
+            document.getElementById("onboot" + parseInt(data.onboot || "0")).click();
+            document.getElementById("onboardled" + parseInt(data.onboardled || "0")).click();
             document.getElementById("extension1").value = data.extension1 || "";
             document.getElementById("extension2").value = data.extension2 || "";
             document.getElementById("extension3").value = data.extension3 || "";

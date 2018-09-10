@@ -10,9 +10,9 @@ void mqtt_check_value_published() {
 
 void mqtt_sendstate() {
 	if (mqttClient.connected()) {
-		mqttClient.publish(mqtt_topic_pub, String(state).c_str(), true);
+		mqttClient.publish(mqtt_topic_pub, String(config.state).c_str(), true);
 
-    Serial.printf(" - message sent [%s] %s \n", mqtt_topic_pub, String(state).c_str());
+    Serial.printf(" - message sent [%s] %s \n", mqtt_topic_pub, String(config.state).c_str());
 		
     mqtt_state_published = true;
 		mqtt_state_publishedtime = millis();
@@ -78,6 +78,6 @@ void mqtt_callback(char* topic, byte* payload, unsigned int length) {
 
   if (strcmp(topic, mqtt_topic_erase) == 0) {
     Serial.printf(" - erase config command recieved \n");
-    eraseConfig();
+    erase_eeprom();
   }
 }

@@ -19,9 +19,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define INVERT_STATE_ON_BOOT    false        // needed for switches, which turning on/off by power
-
-#define DEVICE_TYPE             0
+#define DEVICE_TYPE             7
 
 //    0 - Socket
 //    1 - reserved
@@ -30,7 +28,7 @@
 //    4 - Strip
 //    5 - Encoder
 //    6 - Remote2
-//    7 - Touch1
+//    7 - Touch-T1
 
 
 // DEFINES
@@ -135,8 +133,7 @@ ulong time_led = 0;
 ulong	time_connection_wifi = 0;
 ulong	time_connection_mqtt = 0;
 
-volatile ulong state;  // main vars, holds device state or/and value
-volatile ulong state_previous;
+ulong state_previous;
 
 DNSServer				        dnsServer;
 WiFiClient				      wifiClient;
@@ -159,6 +156,8 @@ struct Config {
 	char		  mqttserver[256];
 	char		  mqttlogin[32];
 	char		  mqttpassword[32];
+  byte    	onboot;
+  byte    	onboardled;
   char    	extension1[32];
   char    	extension2[32];
   char    	extension3[32];
@@ -215,7 +214,6 @@ void setup() {
   Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
 	EEPROM.begin(sizeof(Config));
 	Serial.printf("done \n");
-  if (INVERT_STATE_ON_BOOT) { loadState(); invert_state(); }
 
   Serial.printf("Mounting SPIFFS ... ");
   if (SPIFFS.begin()) {
@@ -226,7 +224,7 @@ void setup() {
   }
 
   Serial.printf("Loading config ... ");
-	if (loadConfig()) {
+	if (load_eeprom()) {
 		Serial.printf("success \n");
 
 		Serial.printf(" - description:         %s \n", config.description);
@@ -237,15 +235,34 @@ void setup() {
 		Serial.printf(" - localpassword:       %s \n", config.localpassword);
 		Serial.printf(" - mqttserver:          %s \n", config.mqttserver);
 		Serial.printf(" - mqttlogin:           %s \n", config.mqttlogin);
-		Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
-		Serial.printf(" - extension 1 / 2 / 3: %s / %s / %s \n", config.extension1, config.extension2, config.extension3);
+    Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
+    Serial.printf(" - onboot:              %u \n", config.onboot);
+    Serial.printf(" - onboardled:          %u \n", config.onboardled);
+    Serial.printf(" - extension 1 / 2 / 3: %s / %s / %s \n", config.extension1, config.extension2, config.extension3);
+
+    switch (config.onboot)
+    {
+    case 1:
+      update_state(1);
+      break;
+    case 2:
+      update_state(config.state);
+      break;
+    case 3:
+      invert_state();
+      break;
+    default:
+      update_state(0);
+      break;
+    }
 
     set_mode(0);
-	}
+
+  }
 	else {
 		Serial.printf("error \n");
 
-		dumpConfig();
+		dump_eeprom();
 
     set_mode(1);
   }

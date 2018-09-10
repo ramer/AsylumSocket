@@ -108,6 +108,12 @@ void handleConfigSave(AsyncWebServerRequest *request) {
   if (request->hasParam("mqttpassword", true) && strcmp(request->getParam("mqttpassword", true)->value().c_str(), "          ") != 0) {
     request->getParam("mqttpassword", true)->value().toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1);
   }
+  if (request->hasParam("onboot", true)) {
+    config.onboot = request->getParam("onboot", true)->value().toInt();
+  }
+  if (request->hasParam("onboardled", true)) {
+    config.onboardled = request->getParam("onboardled", true)->value().toInt();
+  }
   if (request->hasParam("extension1", true)) {
     request->getParam("extension1", true)->value().toCharArray(config.extension1, sizeof(config.extension1) - 1);
   }
@@ -121,7 +127,7 @@ void handleConfigSave(AsyncWebServerRequest *request) {
   request->send(200, "text/html", "Configuration saved.");
 
   Serial.printf("Saving config ... ");
-  saveConfig();
+  save_eeprom();
   Serial.printf("success \n");
 
   has_new_config = true;
@@ -143,6 +149,8 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   root["mqttserver"] = config.mqttserver;
   root["mqttlogin"] = config.mqttlogin;
   root["mqttpassword"] = "          ";
+  root["onboot"] = config.onboot;
+  root["onboardled"] = config.onboardled;
   root["extension1"] = config.extension1;
   root["extension2"] = config.extension2;
   root["extension3"] = config.extension3;

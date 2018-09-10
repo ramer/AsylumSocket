@@ -1,49 +1,41 @@
 ﻿
 
 void update_state(ulong state_new) {
-  state_previous = (state_new > 0 && state > 0) ? 0 : state;
-  state = state_new;
+  state_previous = (state_new > 0 && config.state > 0) ? 0 : config.state;
+  config.state = state_new;
 
 #if DEVICE_TYPE == 0 // Socket
-  digitalWrite(PIN_ACTION, (state == 0 ? LOW : HIGH));
+  digitalWrite(PIN_ACTION, (config.state == 0 ? LOW : HIGH));
 #elif DEVICE_TYPE == 2 // Motor
-  digitalWrite(PIN_ACTION_DIR, (state == 0 ? LOW : HIGH));
+  digitalWrite(PIN_ACTION_DIR, (config.state == 0 ? LOW : HIGH));
   digitalWrite(PIN_ACTION, HIGH);
   delay(INTERVAL_MOTOR);
   digitalWrite(PIN_ACTION, LOW);
 #elif DEVICE_TYPE == 3 // Dimmer
-  i2c_sendvalue(state);
+  i2c_sendvalue(config.state);
 #elif DEVICE_TYPE == 4 // Strip
   strip_updated_flag = false;
 #elif DEVICE_TYPE == 5 // Encoder
-  encoderstate = state;
-  if (state >= 250) { digitalWrite(PIN_ACTION, HIGH); }
-  else if (state > 5 && state < 250) { analogWrite(PIN_ACTION, state << 2); }  // esp8266 uses 10 bit PWM
+  encoderstate = config.state;
+  if (config.state >= 250) { digitalWrite(PIN_ACTION, HIGH); }
+  else if (config.state > 5 && config.state < 250) { analogWrite(PIN_ACTION, config.state << 2); }  // esp8266 uses 10 bit PWM
   else { digitalWrite(PIN_ACTION, LOW); }
 #elif DEVICE_TYPE == 7 // Touch1
-  digitalWrite(PIN_ACTION, (state == 0 ? LOW : HIGH));
+  digitalWrite(PIN_ACTION, (config.state == 0 ? LOW : HIGH));
 #endif
   
-  if (INVERT_STATE_ON_BOOT) { saveState(); }
+  if (config.onboot == 2 || config.onboot == 3) { save_eeprom(); }
 
-	Serial.printf(" - state changed to %u \n", state);
+	Serial.printf(" - state changed to %u \n", config.state);
   mqtt_state_published = false;
 }
 
 void invert_state() {
-  if (state == 0) {
+  if (config.state == 0) {
 
-#if DEVICE_TYPE == 0 // Socket
-    if (state_previous == 0) { state_previous = 1; }
-#elif DEVICE_TYPE == 2 // Motor
-    if (state_previous == 0) { state_previous = 1; }
-#elif DEVICE_TYPE == 3 // Dimmer
-    if (state_previous == 0) { state_previous = 1; }
-#elif DEVICE_TYPE == 4 // Strip
-    if (state_previous == 0) { state_previous = 1; }
-#elif DEVICE_TYPE == 5 // Encoder
+#if DEVICE_TYPE == 5 // Encoder
     if (state_previous < 5) { state_previous = 255; }
-#elif DEVICE_TYPE == 7 // Touch1
+#else
     if (state_previous == 0) { state_previous = 1; }
 #endif
 
@@ -128,7 +120,7 @@ void i2c_sendvalue(uint16_t value) {
 #endif
 
 void blynk() {
-  if (mode > 0 || laststate_led)
+  if (mode > 0)
   {
     uint16_t interval = (mode == 1) ? INTERVAL_LED_SETUP : INTERVAL_LED_SMARTCONFIG;
 
@@ -136,6 +128,11 @@ void blynk() {
       time_led = millis();
       laststate_led = !laststate_led;
       digitalWrite(PIN_LED, !laststate_led); // LED circuit inverted
+    }
+  } else {
+    if (millis() - time_led > INTERVAL_LED_SETUP) {
+      time_led = millis();
+      digitalWrite(PIN_LED, (config.onboardled == 0 ? HIGH : LOW)); // LED circuit inverted
     }
   }
 }
