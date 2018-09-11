@@ -74,7 +74,7 @@ void frame_sunrise() {
 
   if (sunrise >= 65535) {
     sunrise = 0;
-    update_state(16777215);
+    updateState(16777215);
   }
 
   strip.show();

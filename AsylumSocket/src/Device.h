@@ -14,37 +14,45 @@
 class Device
 {
 public:
-  Device(byte pin_event, byte pin_action);
-  void initialize(String device_prefix, PubSubClient *mqttClient);
-  void check_buttons();
-  void update_state(ulong state_new);
-  void invert_state();
+  Device(byte event, byte action);
+  void onUpdatedState(std::function<void(ulong)> onUpdatedStateCallback);
 
-  void handlePayload(char * topic, String payload);
-  void publishstate();
-  void check_published();
+  void initialize(String device_prefix, PubSubClient *mqttClient);
+  void checkButtons();
+  void updateState(ulong state_new, ulong *ptr_state = 0, ulong *ptr_state_old = 0, byte pin = 12); // 12 is default action value
+  void invertState(ulong *ptr_state = 0, ulong *ptr_state_old = 0, byte pin = 12);
+  void handlePayload(char* topic, String payload);
+  void subscribe();
+  void publishState(String t, ulong s);
+  void checkPublished();
 
   ulong state;
-  char * uid;
-  char * mqtt_topic_pub;
-  char * mqtt_topic_sub;
-  char * mqtt_topic_status;
-  char * mqtt_topic_setup;
-  char * mqtt_topic_reboot;
-  char * mqtt_topic_erase;
+  ulong state_old;
+
+  String uid;
+  String mqtt_topic_pub;
+  String mqtt_topic_sub;
+  String mqtt_topic_status;
+  String mqtt_topic_setup;
+  String mqtt_topic_reboot;
+  String mqtt_topic_erase;
 
 protected:
-  void generateglobaltopics(String id);
-  void generatetopics(String id);
+  std::function<void(ulong)> updatedStateCallback;
+
+  void generateUid(String prefix);
+  void generateGlobalTopics();
+  void generateTopics();
+  bool buttonPressed(byte pin, bool * laststate);
 
   PubSubClient * _mqttClient;
-  bool mqtt_state_published = false;
+  bool  mqtt_state_published = false;
   ulong	mqtt_state_publishedtime = 0;
-  byte _pin_event;
-  byte _pin_action;
-  ulong _state;
-  bool laststate_event = false;
-  ulong time_event = 0;
+
+  byte  pin_event;
+  byte  pin_action;
+  bool  pin_event_laststate = false;
+  ulong pin_event_time = 0;
 };
 
 #endif

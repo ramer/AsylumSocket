@@ -1,10 +1,16 @@
 ﻿
+void updatedState(ulong new_state) {
+  if (config.onboot == 2 || config.onboot == 3) {
+    config.state = device.state || device.state2 || device.state3;
+    save_eeprom();
+  }
+}
 
-//void update_state(ulong state_new) {
+//void updateState(ulong state_new) {
 //  state_previous = (state_new > 0 && config.state > 0) ? 0 : config.state;
 //  config.state = state_new;
 //
-//  device.update_state(state_new);
+//  device.updateState(state_new);
 //
 //#if DEVICE_TYPE == 0 // Socket
 //#elif DEVICE_TYPE == 2 // Motor
@@ -30,20 +36,20 @@
 //
 //}
 
-//void invert_state() {
+//void invertState() {
 //  if (config.state == 0) {
 //
 //#if DEVICE_TYPE == 5 // Encoder
 //    if (state_previous < 5) { state_previous = 255; }
 //#else
-//    device.invert_state();
+//    device.invertState();
 //    //if (state_previous == 0) { state_previous = 1; }
 //#endif
 //
-//    update_state(state_previous);
+//    updateState(state_previous);
 //  }
 //  else {
-//    update_state(0);
+//    updateState(0);
 //  }
 //}
 

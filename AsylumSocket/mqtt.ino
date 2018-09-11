@@ -20,8 +20,8 @@ void mqtt_sendstatus() {
     }
 
     sprintf(payload, "{\"Type\":%u,\"MAC\":\"%s\",\"IP\":\"%s\"}", DEVICE_TYPE, mac_str.c_str(), WiFi.localIP().toString().c_str());
-    mqttClient.publish(device.mqtt_topic_status, payload, true);
-    Serial.printf(" - message sent [%s] %s \n", device.mqtt_topic_status, payload);
+    mqttClient.publish(device.mqtt_topic_status.c_str(), payload, true);
+    Serial.printf(" - message sent [%s] %s \n", device.mqtt_topic_status.c_str(), payload);
   }
 }
 
@@ -32,17 +32,17 @@ void mqtt_callback(char* topic, byte* pl, unsigned int length) {
 
   device.handlePayload(topic, payload);
 
-	if (strcmp(topic, device.mqtt_topic_setup) == 0) {
+	if (strcmp(topic, device.mqtt_topic_setup.c_str()) == 0) {
     Serial.printf(" - setup mode command recieved \n");
     set_mode(2);
 	}
 
-	if (strcmp(topic, device.mqtt_topic_reboot) == 0) {
+	if (strcmp(topic, device.mqtt_topic_reboot.c_str()) == 0) {
     Serial.printf(" - reboot command recieved \n");
     reboot();
 	}
 
-  if (strcmp(topic, device.mqtt_topic_erase) == 0) {
+  if (strcmp(topic, device.mqtt_topic_erase.c_str()) == 0) {
     Serial.printf(" - erase config command recieved \n");
     erase_eeprom();
   }

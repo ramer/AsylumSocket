@@ -4,31 +4,39 @@
 #define _TOUCHT1_h
 
 #include "ESP8266WiFi.h"
+#include "Device.h"
 
-#define INTERVAL_EVENT_DEBOUNCE	      100
-#define INTERVAL_LED_SETUP	          500
-#define INTERVAL_LED_SMARTCONFIG      250
-
-class TouchT1
+class TouchT1 : public Device
 {
-  public:
-    TouchT1(byte pin_event, byte pin_action, byte pin_led);
-    void initialize();
-    void check_buttons();
-    void update_state(ulong state_new);
-    void invert_state();
-    void blynk(uint8_t mode, byte onboardled);
-    ulong state;
+public:
+  TouchT1(byte event, byte action, byte event2, byte action2, byte event3, byte action3);
 
-  private:
-    byte _pin_event;
-    byte _pin_action;
-    byte _pin_led;
-    ulong _state;
-    bool laststate_event = false;
-    bool laststate_led = false;
-    ulong time_event = 0;
-    ulong time_led = 0;
+  void init(PubSubClient *mqttClient);
+  void initialize(String prefix, PubSubClient * mqttClient);
+  void checkButtons();
+  void handlePayload(char * topic, String payload);
+  void subscribe();
+  void checkPublished();
+
+  ulong state2;
+  ulong state2_old;
+  ulong state3;
+  ulong state3_old;
+
+  String mqtt_topic_pub2;
+  String mqtt_topic_pub3;
+  String mqtt_topic_sub2;
+  String mqtt_topic_sub3;
+
+protected:
+  void generateTopics();
+
+  byte pin_event2;
+  byte pin_action2;
+  byte pin_event3;
+  byte pin_action3;
+  bool pin_event_laststate2 = false;
+  bool pin_event_laststate3 = false;
 };
 
 #endif

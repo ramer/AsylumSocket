@@ -19,7 +19,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  0
+#define DEVICE_TYPE  7
 
 //    0 - Socket
 //    1 - reserved
@@ -83,8 +83,7 @@
   #define PIN_LED				      14
 #elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
   #include "src/TouchT1.h"
-  #define DEVICE_PREFIX "TouchT1"
-  TouchT1 device(0, 12, 13);
+  TouchT1 device(0, 12, 9, 5, 10, 4);
 #else
   #define DEVICE_PREFIX				"Device"
 #endif
@@ -147,8 +146,9 @@ void setup() {
   Serial.printf("\n\n\n");
   Serial.printf("Chip started. \n");
   device.init(&mqttClient);
+  device.onUpdatedState(updatedState);
 
-  Serial.printf("UID: (%s) \n", device.uid);
+  Serial.printf("UID: (%s) \n", device.uid.c_str());
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
 	Serial.printf("Configuring pins ... ");
@@ -214,16 +214,16 @@ void setup() {
     switch (config.onboot)
     {
     case 1:
-      device.update_state(1);
+      device.updateState(1);
       break;
     case 2:
-      device.update_state(config.state);
+      device.updateState(config.state);
       break;
     case 3:
-      device.invert_state();
+      device.invertState();
       break;
     default:
-      device.update_state(0);
+      device.updateState(0);
       break;
     }
 
@@ -312,17 +312,12 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.mqttserver, device.uid, config.mqttlogin, config.mqttpassword);
+					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.mqttserver, device.uid.c_str(), config.mqttlogin, config.mqttpassword);
 
-					if (mqttClient.connect(device.uid, config.mqttlogin, config.mqttpassword)) {
+					if (mqttClient.connect(device.uid.c_str(), config.mqttlogin, config.mqttpassword)) {
 						Serial.printf("connected, state = %i \n", mqttClient.state());
 						
-            mqttClient.subscribe(device.mqtt_topic_sub);
-						mqttClient.subscribe(device.mqtt_topic_setup);
-            mqttClient.subscribe(device.mqtt_topic_reboot);
-            mqttClient.subscribe(device.mqtt_topic_erase);
-
-            device.publishstate();
+            device.subscribe();
             mqtt_sendstatus();
 					}
 					else 
@@ -333,7 +328,7 @@ void loop() {
 			}
 			else {
 
-        device.check_published();
+        device.checkPublished();
 
 			}
 		}
@@ -341,7 +336,7 @@ void loop() {
 
 	// LOOP ANYWAY
 
-  device.check_buttons();
+  device.checkButtons();
   check_newupdate();
   check_newconfig();
   check_mode();
@@ -350,60 +345,60 @@ void loop() {
 #if DEVICE_TYPE == 0 // Socket
 
 #elif DEVICE_TYPE == 2 // Motor
-  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = true;
+    pin_event_time = millis();
+    pin_event_laststate = true;
 
-    invert_state();
+    invertState();
   }
-  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = false;
+    pin_event_time = millis();
+    pin_event_laststate = false;
   }
 #elif DEVICE_TYPE == 3 // Dimmer
 #elif DEVICE_TYPE == 4 // Strip
   update_strip();
 #elif DEVICE_TYPE == 5 // Encoder
-  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = true;
+    pin_event_time = millis();
+    pin_event_laststate = true;
 
-    invert_state();
+    invertState();
   }
-  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = false;
+    pin_event_time = millis();
+    pin_event_laststate = false;
   }
 
-  if (state != encoderstate) { update_state(encoderstate); }
+  if (state != encoderstate) { updateState(encoderstate); }
 #elif DEVICE_TYPE == 6 // Remote2
-  if (digitalRead(PIN_EVENT) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = true;
+    pin_event_time = millis();
+    pin_event_laststate = true;
 
     mqtt_sendcommand(TOPIC1);
   }
-  if (digitalRead(PIN_EVENT) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = false;
+    pin_event_time = millis();
+    pin_event_laststate = false;
   }
-  if (digitalRead(PIN_EVENT2) == LOW && laststate_event == false && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT2) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = true;
+    pin_event_time = millis();
+    pin_event_laststate = true;
 
     mqtt_sendcommand(TOPIC2);
   }
-  if (digitalRead(PIN_EVENT2) == HIGH && laststate_event == true && millis() - time_event > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(PIN_EVENT2) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
-    time_event = millis();
-    laststate_event = false;
+    pin_event_time = millis();
+    pin_event_laststate = false;
   }
 #elif DEVICE_TYPE == 7 // Touch1
 
