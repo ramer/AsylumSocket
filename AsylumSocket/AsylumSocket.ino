@@ -46,7 +46,7 @@
 
 //DECLARATIONS
 
-int8_t mode = -1; // 0 - regular , 1 - setup , 2 - smart config
+int8_t mode = -1; // 0 - regular , 1 - smart config , 2 - setup
 
 bool laststate_mode = false;
 bool laststate_led = false;
@@ -72,48 +72,14 @@ Config          config;
 #if DEVICE_TYPE == 0
   #include "src/Socket.h"
   Socket device(0, 12);
-#elif DEVICE_TYPE == 2
-  #define DEVICE_PREFIX				"Motor"
-  #define PIN_EVENT					  0
-  #define PIN_ACTION					12
-  #define PIN_ACTION_DIR  		13
-  #define PIN_LED				      14
-  #define INTERVAL_MOTOR		  5000
-#elif DEVICE_TYPE == 3
-  #define DEVICE_PREFIX				"Dimmer"
-  #include <Wire.h>
-  #define ADDRESS_I2C_SLAVE		(0x1)
-#elif DEVICE_TYPE == 4
-  #define DEVICE_PREFIX				"Strip"
-  #include <Adafruit_NeoPixel.h>
-  Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, PIN_ACTION, NEO_GRB + NEO_KHZ800); //rgb
-  #define PIN_ACTION					13
-  #define PIN_LED				      14
-  #define INTERVAL_STRIP_FRAME	  10
-  #define STRIP_LEDCOUNT          121
-#elif DEVICE_TYPE == 5
-  #define DEVICE_PREFIX				"Encoder"
-  #define PIN_EVENT					  0
-  #define PIN_A					      12
-  #define PIN_B					      13
-  #define PIN_ACTION					14
-  #define PIN_LED				      2
-  volatile byte encoderstate = 0;
-#elif DEVICE_TYPE == 6
-  #define DEVICE_PREFIX				"Remote2"
-  #define PIN_EVENT					  0
-  #define PIN_EVENT2					2
-  #define TOPIC1				      "Touch1-e079/pub"
-  #define TOPIC2				      "Encoder-c9b8/pub"
-  #define PIN_LED				      14
 #elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
   #include "src/TouchT1.h"
   TouchT1 device(0, 12, 9, 5, 10, 4);
 #else
-  #define DEVICE_PREFIX				"Device"
+  #include "src/Device.h"
+  Device device(0, 12);
 #endif
-
-
+  
 void setup() {
 #if DEBUG == true
   Serial.begin(74880);
@@ -139,9 +105,9 @@ void setup() {
 
   bool configured = config.loadConfig(); 
 
-  Serial.printf("Initializing device ... ");
+  Serial.printf("Initializing device \n");
   device.initialize(&mqttClient, &config);
-  Serial.printf("%s \n", device.uid.c_str());
+  Serial.printf("Initialized %s \n", device.uid.c_str());
 
   Serial.printf("Starting HTTP-server ... ");
   httpserver_setuphandlers();
@@ -246,68 +212,6 @@ void loop() {
   check_mode();
   blynk();
 
-#if DEVICE_TYPE == 0 // Socket
-
-#elif DEVICE_TYPE == 2 // Motor
-  if (digitalRead(PIN_EVENT) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = true;
-
-    invertState();
-  }
-  if (digitalRead(PIN_EVENT) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = false;
-  }
-#elif DEVICE_TYPE == 3 // Dimmer
-#elif DEVICE_TYPE == 4 // Strip
-  update_strip();
-#elif DEVICE_TYPE == 5 // Encoder
-  if (digitalRead(PIN_EVENT) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = true;
-
-    invertState();
-  }
-  if (digitalRead(PIN_EVENT) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = false;
-  }
-
-  if (state != encoderstate) { updateState(encoderstate); }
-#elif DEVICE_TYPE == 6 // Remote2
-  if (digitalRead(PIN_EVENT) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = true;
-
-    mqtt_sendcommand(TOPIC1);
-  }
-  if (digitalRead(PIN_EVENT) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = false;
-  }
-  if (digitalRead(PIN_EVENT2) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = true;
-
-    mqtt_sendcommand(TOPIC2);
-  }
-  if (digitalRead(PIN_EVENT2) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time = millis();
-    pin_event_laststate = false;
-  }
-#elif DEVICE_TYPE == 7 // Touch1
-
-#endif
-
 } // loop
 
 #if DEVICE_TYPE == 5 // Encoder
@@ -334,6 +238,50 @@ void doEncoder() {
   }
 }
 #endif
+
+//#if DEVICE_TYPE == 0
+//#include "src/Socket.h"
+//Socket device(0, 12);
+//#elif DEVICE_TYPE == 2
+//#define DEVICE_PREFIX				"Motor"
+//#define PIN_EVENT					  0
+//#define PIN_ACTION					12
+//#define PIN_ACTION_DIR  		13
+//#define PIN_LED				      14
+//#define INTERVAL_MOTOR		  5000
+//#elif DEVICE_TYPE == 3
+//#define DEVICE_PREFIX				"Dimmer"
+//#include <Wire.h>
+//#define ADDRESS_I2C_SLAVE		(0x1)
+//#elif DEVICE_TYPE == 4
+//#define DEVICE_PREFIX				"Strip"
+//#include <Adafruit_NeoPixel.h>
+//Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, PIN_ACTION, NEO_GRB + NEO_KHZ800); //rgb
+//#define PIN_ACTION					13
+//#define PIN_LED				      14
+//#define INTERVAL_STRIP_FRAME	  10
+//#define STRIP_LEDCOUNT          121
+//#elif DEVICE_TYPE == 5
+//#define DEVICE_PREFIX				"Encoder"
+//#define PIN_EVENT					  0
+//#define PIN_A					      12
+//#define PIN_B					      13
+//#define PIN_ACTION					14
+//#define PIN_LED				      2
+//volatile byte encoderstate = 0;
+//#elif DEVICE_TYPE == 6
+//#define DEVICE_PREFIX				"Remote2"
+//#define PIN_EVENT					  0
+//#define PIN_EVENT2					2
+//#define TOPIC1				      "Touch1-e079/pub"
+//#define TOPIC2				      "Encoder-c9b8/pub"
+//#define PIN_LED				      14
+//#elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
+//#include "src/TouchT1.h"
+//TouchT1 device(0, 12, 9, 5, 10, 4);
+//#else
+//#define DEVICE_PREFIX				"Device"
+//#endif
 
 
 

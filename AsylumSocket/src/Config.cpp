@@ -4,10 +4,6 @@
 
 Config::Config() {
   def_conf = {
-    { "state", "0" },
-    { "state2", "0" },
-    { "state3", "0" },
-    { "state4", "0" },
     { "description", "" },
     { "mode", "0" },
     { "apssid", "" },
@@ -26,9 +22,9 @@ Config::Config() {
 }
 
 bool Config::loadConfig() {
-  Serial.printf("Reading Configuration file (%s) ... ", String(CONFIG_FILENAME).c_str());
+  Serial.printf("Reading Configuration file (%s) ... ", String(CONFIG_FILENAME_CONFIG).c_str());
 
-  File file = SPIFFS.open(CONFIG_FILENAME, "r");
+  File file = SPIFFS.open(CONFIG_FILENAME_CONFIG, "r");
   if (!file)
   {
     Serial.printf("failed. Using default configuration \n");
@@ -41,11 +37,9 @@ bool Config::loadConfig() {
 
   DynamicJsonBuffer jsonBuffer;
   JsonObject &root = jsonBuffer.parseObject(file);
-
-  Serial.printf("-------------\t\tBEGIN OF DUMP\t\t------------\n");
-  root.prettyPrintTo(Serial);
-  Serial.printf("\n-------------\t\tEND OF DUMP\t\t------------\n");
-
+  //Serial.printf("\n-------------\t\tBEGIN OF DUMP\t\t------------\n");
+  //root.prettyPrintTo(Serial);
+  //Serial.printf("\n-------------\t\tEND OF DUMP\t\t------------\n\n");
   if (!root.success()) {
     Serial.printf("Parsing Configuration file (%s): failed. Using default configuration \n", file.name());
     cur_conf = def_conf;
@@ -74,9 +68,9 @@ bool Config::loadConfig() {
 }
 
 void Config::saveConfig() {
-  Serial.printf("Saving Configuration file (%s) ... ", String(CONFIG_FILENAME).c_str());
+  Serial.printf("Saving Configuration file (%s) ... ", String(CONFIG_FILENAME_CONFIG).c_str());
 
-  File file = SPIFFS.open(CONFIG_FILENAME, "w");
+  File file = SPIFFS.open(CONFIG_FILENAME_CONFIG, "w");
   if (!file)
   {
     Serial.printf("failed: cannot be created \n");
@@ -94,11 +88,9 @@ void Config::saveConfig() {
   for (auto &item : cur_conf) {
     root[item.first] = item.second;
   }
-
-  Serial.printf("-------------\t\tBEGIN OF DUMP\t\t------------\n");
-  root.prettyPrintTo(Serial);
-  Serial.printf("\n-------------\t\tEND OF DUMP\t\t------------\n");
-
+  //Serial.printf("\n-------------\t\tBEGIN OF DUMP\t\t------------\n");
+  //root.prettyPrintTo(Serial);
+  //Serial.printf("\n-------------\t\tEND OF DUMP\t\t------------\n\n");
   if (root.printTo(file) == 0)
   {
     Serial.printf("Writing Configuration file (%s): failed.", file.name());
@@ -107,19 +99,31 @@ void Config::saveConfig() {
   file.close();
 }
 
-bool Config::loadState()
+std::map<String, String> Config::loadState()
 {
-  return false;
+  std::map<String, String> states;
+  File file = SPIFFS.open(CONFIG_FILENAME_STATE, "r");
+  if (!file) return states;
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject &root = jsonBuffer.parseObject(file);
+  //Serial.printf("-------------\t\tBEGIN OF LOAD\t\t------------\n");
+  //root.prettyPrintTo(Serial);
+  //Serial.printf("\n-------------\t\tEND OF LOAD\t\t------------\n");
+    if (!root.success()) { file.close(); return states; }
+  for (auto &jsonPair : root) {
+    states.insert(std::pair<String, String>(String(jsonPair.key), String(jsonPair.value.asString())));
+  }
+  file.close();
+  return states;
 }
 
-void Config::saveState()
+void Config::saveState(JsonObject &root)
 {
+  File file = SPIFFS.open(CONFIG_FILENAME_STATE, "w");
+  if (!file) return;
+  //Serial.printf("-------------\t\tBEGIN OF SAVE\t\t------------\n");
+  //root.prettyPrintTo(Serial);
+  //Serial.printf("\n-------------\t\tEND OF SAVE\t\t------------\n");
+  root.printTo(file);
+  file.close();
 }
-
-//String getAsSting() {
-//  String r = "";
-//  for (auto &item : config) {
-//    r += item.first + ":" + item.second + "\n";
-//  }
-//  return r;
-//}

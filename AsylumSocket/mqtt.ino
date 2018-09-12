@@ -25,19 +25,21 @@ void mqtt_sendstatus() {
   }
 }
 
-void mqtt_callback(char* topic, byte* pl, unsigned int length) {
+void mqtt_callback(char* tp, byte* pl, unsigned int length) {
   pl[length] = '\0';
   String payload = String((char*)pl);
-	Serial.printf(" - message recieved [%s]: %s \n", topic, payload.c_str());
+  String topic = String(tp);
+
+	Serial.printf(" - message recieved [%s]: %s \n", topic.c_str(), payload.c_str());
 
   device.handlePayload(topic, payload);
 
-	if (strcmp(topic, device.mqtt_topic_setup.c_str()) == 0) {
+	if (topic == device.mqtt_topic_setup) {
     Serial.printf(" - setup mode command recieved \n");
     set_mode(2);
 	}
 
-	if (strcmp(topic, device.mqtt_topic_reboot.c_str()) == 0) {
+	if (topic == device.mqtt_topic_reboot) {
     Serial.printf(" - reboot command recieved \n");
     reboot();
 	}

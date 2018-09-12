@@ -10,7 +10,8 @@
 #include <FS.h>
 #include <map>
 
-#define CONFIG_FILENAME "/config.json"
+#define CONFIG_FILENAME_CONFIG "/config.json"
+#define CONFIG_FILENAME_STATE "/state.json"
 #define CONFIG_VALIDATOR "x"
 
 class Config {
@@ -22,8 +23,8 @@ public:
 
   bool loadConfig();
   void saveConfig();
-  bool loadState();
-  void saveState();
+  std::map<String, String> loadState();
+  void saveState(JsonObject &root);
 
 };
 

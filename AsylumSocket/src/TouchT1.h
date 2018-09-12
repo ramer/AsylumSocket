@@ -12,11 +12,9 @@ class TouchT1 : public Device
 public:
   TouchT1(byte event, byte action, byte event2, byte action2, byte event3, byte action3);
 
-  //void onUpdatedState(std::function<void(ulong, ulong, ulong)> onUpdatedStateCallback);
-
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "TouchT1");
   void update();
-  void handlePayload(char * topic, String payload);
+  void handlePayload(String topic, String payload);
   void subscribe();
 
   ulong state2;
@@ -30,9 +28,9 @@ public:
   String mqtt_topic_sub3;
 
 protected:
-  //std::function<void(ulong, ulong, ulong)> updatedStateCallback;
-
   void generateTopics();
+  void loadState();
+  void saveState();
 
   bool state_published2 = false;
   bool state_published3 = false;

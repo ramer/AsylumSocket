@@ -7,10 +7,6 @@ Device::Device(byte event, byte action) {
   pin_action = action;
 }
 
-//void Device::onUpdatedState(std::function<void(ulong)> onUpdateStateCallback) {
-//  updatedStateCallback = onUpdateStateCallback;
-//}
-
 void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
   _mqttClient = ptr_mqttClient;
   _config = ptr_config;
@@ -21,6 +17,8 @@ void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String
   generateUid(prefix);
   generateGlobalTopics();
   generateTopics();
+
+  loadState();
 }
 
 void Device::generateUid(String prefix) {
@@ -48,9 +46,10 @@ void Device::generateTopics(){
 
 void Device::update() {
   // process buttons
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, &state_published, pin_action); }
+  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, &state_published, pin_action); saveState(); }
 
   // check state published
+  if (!_mqttClient) return;
   if (_mqttClient->connected() && !state_published && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub, state, &state_published); }
 }
 
@@ -69,7 +68,9 @@ void Device::updateState(ulong state_new, ulong *ptr_state, ulong *ptr_state_old
     digitalWrite(pin, (state == 0 ? LOW : HIGH));
     state_published = false;
   }
+
   Serial.printf(" - state changed to %u \n", state_new);
+  //updateStateCallback(state_new);
 }
 
 void Device::invertState(ulong *ptr_state, ulong *ptr_state_old, bool *ptr_state_published, byte pin) {
@@ -95,25 +96,26 @@ void Device::invertState(ulong *ptr_state, ulong *ptr_state_old, bool *ptr_state
   }
 }
 
-void Device::handlePayload(char* topic, String payload) {
-  if (strcmp(topic, mqtt_topic_sub.c_str()) == 0) {
+void Device::handlePayload(String topic, String payload) {
+  if (topic == mqtt_topic_sub) {
     if (payload == "-1") {
       Serial.printf(" - value invert command recieved \n");
 
-      invertState(&state, &state_old, &state_published, pin_action);
+      invertState(&state, &state_old, &state_published, pin_action); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state, &state_old, &state_published, pin_action);
+      updateState(newvalue, &state, &state_old, &state_published, pin_action); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
     }
   }
 }
 
 void Device::subscribe() {
+  if (!_mqttClient) return;
   if (_mqttClient->connected()) {
     _mqttClient->subscribe(mqtt_topic_sub.c_str());
     _mqttClient->subscribe(mqtt_topic_setup.c_str());
@@ -147,4 +149,65 @@ bool Device::buttonPressed(byte pin, bool *laststate) {
     *laststate = false;
   }
   return pressed;
+
 }
+
+void Device::loadState() {
+  if (!_config) return;
+  byte onboot = _config->cur_conf["onboot"].toInt();
+  if (onboot == 0) {
+    // stay off
+    Serial.printf(" - onboot: stay off \n");
+    updateState(0, &state, &state_old, &state_published, pin_action);
+  }
+  else if (onboot == 1) {
+    // turn on
+    Serial.printf(" - onboot: turn on \n");
+    updateState(1, &state, &state_old, &state_published, pin_action);
+  }
+  else if (onboot == 2) {
+    // saved state
+    std::map<String, String> states = _config->loadState();
+    Serial.printf(" - onboot: last state: %u \n", states["state"].toInt());
+    updateState(states["state"].toInt(), &state, &state_old, &state_published, pin_action);
+  }
+  else if (onboot == 3) {
+    // inverted saved state
+    std::map<String, String> states = _config->loadState();
+    if (states["on"].toInt() == 0) {
+      Serial.printf(" - onboot: inverted state: %u \n", states["state"].toInt());
+      updateState(states["state"].toInt(), &state, &state_old, &state_published, pin_action);
+      saveState();
+    }
+    else {
+      Serial.printf(" - onboot: inverted state: 0 \n");
+      updateState(0, &state, &state_old, &state_published, pin_action);
+      saveState();
+    }
+  }
+}
+
+void Device::saveState() {
+  if (!_config) return;
+  byte onboot = _config->cur_conf["onboot"].toInt();
+  if (onboot == 0 || onboot == 1) return;
+
+  bool on = state;
+
+  std::map<String, String> states_old = _config->loadState();
+
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  root["on"] = (int)on;
+  if (on) {
+    root["state"] = state;
+  }
+  else {
+    root["state"] = states_old["state"];
+  }
+  _config->saveState(root);
+}
+
+//void Device::onUpdateState(std::function<void(ulong)> onUpdateStateCallback) {
+//  updateStateCallback = onUpdateStateCallback;
+//}
