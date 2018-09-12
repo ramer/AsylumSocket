@@ -11,10 +11,10 @@
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
-#include <EEPROM.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <WiFiUdp.h>
+#include "src/Config.h"
 
 
 // GLOBAL FIRMWARE CONFIGURATION
@@ -29,7 +29,6 @@
 //    5 - Encoder
 //    6 - Remote2
 //    7 - Touch-T1
-
 
 // DEFINES
 
@@ -106,36 +105,16 @@ ulong time_led = 0;
 ulong	time_connection_wifi = 0;
 ulong	time_connection_mqtt = 0;
 
-ulong state_previous;
-
-DNSServer				        dnsServer;
-WiFiClient				      wifiClient;
-PubSubClient			      mqttClient(wifiClient);
-AsyncWebServer          httpServer(PORT_HTTP);
-IPAddress				        wifi_AP_IP  (192, 168, 4, 1);
-IPAddress				        wifi_AP_MASK(255, 255, 255, 0);
+DNSServer				dnsServer;
+WiFiClient			wifiClient;
+PubSubClient		mqttClient(wifiClient);
+AsyncWebServer  httpServer(PORT_HTTP);
+IPAddress				wifi_AP_IP  (192, 168, 4, 1);
+IPAddress				wifi_AP_MASK(255, 255, 255, 0);
 
 //EEPROM stored configuration
 
-struct Config {
-  ulong     state;
-	char		  reserved[12] = "";
-	char		  description[128];
-	byte    	mode;
-	char		  apssid[32];
-	char		  apkey[32];
-	char		  locallogin[32];
-	char		  localpassword[32];
-	char		  mqttserver[256];
-	char		  mqttlogin[32];
-	char		  mqttpassword[32];
-  byte    	onboot;
-  byte    	onboardled;
-  char    	extension1[32];
-  char    	extension2[32];
-  char    	extension3[32];
-	byte		  validator;
-} config;
+
 
 void setup() {
 #if DEBUG == true
@@ -145,47 +124,13 @@ void setup() {
   
   Serial.printf("\n\n\n");
   Serial.printf("Chip started. \n");
-  device.init(&mqttClient);
-  device.onUpdatedState(updatedState);
-
-  Serial.printf("UID: (%s) \n", device.uid.c_str());
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
 	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
   pinMode(PIN_LED, OUTPUT);	  digitalWrite(PIN_LED, HIGH);	    // default initial value
   Serial.printf("done \n");
-
-//#if DEVICE_TYPE == 0 // Socket
-//#elif DEVICE_TYPE == 2 // Motor
-//  pinMode(PIN_EVENT, INPUT);
-//  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
-//  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
-//#elif DEVICE_TYPE == 3 // Dimmer
-//  Serial.printf("Joining I2C bus ... ");
-//  Wire.begin(0, 2);        // join i2c bus (address optional for master)
-//  Serial.printf("done \n");
-//#elif DEVICE_TYPE == 4 // Strip
-//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-//#elif DEVICE_TYPE == 5 // Encoder
-//  pinMode(PIN_EVENT, INPUT);
-//  pinMode(PIN_A, INPUT);
-//  pinMode(PIN_B, INPUT);
-//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-//	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
-//  attachInterrupt(PIN_A, doEncoder, CHANGE);
-//#elif DEVICE_TYPE == 6 // Remote2
-//  pinMode(PIN_EVENT, INPUT);
-//  pinMode(PIN_EVENT2, INPUT);
-//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
-//#elif DEVICE_TYPE == 7 // Touch1
-//#endif
   
-  Serial.printf("Initializing EEPROM (%u bytes) ... ", sizeof(Config));
-	EEPROM.begin(sizeof(Config));
-	Serial.printf("done \n");
-
   Serial.printf("Mounting SPIFFS ... ");
   if (SPIFFS.begin()) {
     Serial.printf("success \n");
@@ -194,50 +139,32 @@ void setup() {
     Serial.printf("error \n");
   }
 
-  Serial.printf("Loading config ... ");
-	if (load_eeprom()) {
-		Serial.printf("success \n");
+  Serial.printf("Initializing device ... ");
+  device.initialize(&mqttClient);
+  Serial.printf("%s \n", device.uid.c_str());
 
-		Serial.printf(" - description:         %s \n", config.description);
-		Serial.printf(" - mode:                %u \n", config.mode);
-		Serial.printf(" - apssid:              %s \n", config.apssid);
-		Serial.printf(" - apkey:               %s \n", config.apkey);
-		Serial.printf(" - locallogin:          %s \n", config.locallogin);
-		Serial.printf(" - localpassword:       %s \n", config.localpassword);
-		Serial.printf(" - mqttserver:          %s \n", config.mqttserver);
-		Serial.printf(" - mqttlogin:           %s \n", config.mqttlogin);
-    Serial.printf(" - mqttpassword:        %s \n", config.mqttpassword);
-    Serial.printf(" - onboot:              %u \n", config.onboot);
-    Serial.printf(" - onboardled:          %u \n", config.onboardled);
-    Serial.printf(" - extension 1 / 2 / 3: %s / %s / %s \n", config.extension1, config.extension2, config.extension3);
+  if (Config::load()) {
+    //Serial.printf(" - description:         %s \n", config["description"].c_str());
+    //Serial.printf(" - mode:                %u \n", config["mode"].toInt());
+    //Serial.printf(" - apssid:              %s \n", config["apssid"].c_str());
+    //Serial.printf(" - apkey:               %s \n", config["apkey"].c_str());
+    //Serial.printf(" - locallogin:          %s \n", config["locallogin"].c_str());
+    //Serial.printf(" - localpassword:       %s \n", config["localpassword"].c_str());
+    //Serial.printf(" - mqttserver:          %s \n", config["mqttserver"].c_str());
+    //Serial.printf(" - mqttlogin:           %s \n", config["mqttlogin"].c_str());
+    //Serial.printf(" - mqttpassword:        %s \n", config["mqttpassword"].c_str());
+    //Serial.printf(" - onboot:              %u \n", config["onboot"].toInt());
+    //Serial.printf(" - onboardled:          %u \n", config["onboardled"].toInt());
+    //Serial.printf(" - extension 1 / 2 / 3: %s / %s / %s \n", config["extension1"].c_str(), config["extension2"].c_str(), config["extension3"].c_str());
 
-    switch (config.onboot)
-    {
-    case 1:
-      device.updateState(1);
-      break;
-    case 2:
-      device.updateState(config.state);
-      break;
-    case 3:
-      device.invertState();
-      break;
-    default:
-      device.updateState(0);
-      break;
-    }
+    //device.setOnBootState();
 
     set_mode(0);
-
   }
-	else {
-		Serial.printf("error \n");
-
-		dump_eeprom();
-
+  else {
     set_mode(1);
   }
-  
+
   Serial.printf("Starting HTTP-server ... ");
   httpserver_setuphandlers();
   httpServer.begin();
@@ -258,11 +185,8 @@ void loop() {
       case WL_CONNECTED:
         Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
 
-        memset(config.apssid, 0, sizeof(config.apssid));
-        memset(config.apkey, 0, sizeof(config.apkey));
-
-        WiFi.SSID().toCharArray(config.apssid, sizeof(config.apssid) - 1);
-        WiFi.psk().toCharArray(config.apkey, sizeof(config.apkey) - 1);
+        config["apssid"] = WiFi.SSID();
+        config["apkey"] = WiFi.psk();
           
         initializeSetupMode(); // cant use 'set_mode()' - we can't deinitialize smart config mode yet
         mode = 2; // crutch
@@ -297,9 +221,9 @@ void loop() {
 			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
 				time_connection_wifi = millis();
 
-        if (strcmp(config.apssid, "") != 0) {
-          Serial.printf("Connecting to access point: %s , password: %s \n", config.apssid, config.apkey);
-          WiFi.begin(config.apssid, config.apkey);
+        if (config["apssid"].length() != 0) {
+          Serial.printf("Connecting to access point: %s , password: %s \n", config["apssid"].c_str(), config["apkey"].c_str());
+          WiFi.begin(config["apssid"].c_str(), config["apkey"].c_str());
         } else {
           Serial.printf("Connecting to access point error: no SSID specified \n");
         }
@@ -312,9 +236,9 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.mqttserver, device.uid.c_str(), config.mqttlogin, config.mqttpassword);
+					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config["mqttserver"].c_str(), device.uid.c_str(), config["mqttlogin"].c_str(), config["mqttpassword"].c_str());
 
-					if (mqttClient.connect(device.uid.c_str(), config.mqttlogin, config.mqttpassword)) {
+					if (mqttClient.connect(device.uid.c_str(), config["mqttlogin"].c_str(), config["mqttpassword"].c_str())) {
 						Serial.printf("connected, state = %i \n", mqttClient.state());
 						
             device.subscribe();
@@ -430,3 +354,31 @@ void doEncoder() {
   }
 }
 #endif
+
+
+
+//#if DEVICE_TYPE == 0 // Socket
+//#elif DEVICE_TYPE == 2 // Motor
+//  pinMode(PIN_EVENT, INPUT);
+//  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
+//  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
+//#elif DEVICE_TYPE == 3 // Dimmer
+//  Serial.printf("Joining I2C bus ... ");
+//  Wire.begin(0, 2);        // join i2c bus (address optional for master)
+//  Serial.printf("done \n");
+//#elif DEVICE_TYPE == 4 // Strip
+//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
+//#elif DEVICE_TYPE == 5 // Encoder
+//  pinMode(PIN_EVENT, INPUT);
+//  pinMode(PIN_A, INPUT);
+//  pinMode(PIN_B, INPUT);
+//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
+//	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
+//  attachInterrupt(PIN_A, doEncoder, CHANGE);
+//#elif DEVICE_TYPE == 6 // Remote2
+//  pinMode(PIN_EVENT, INPUT);
+//  pinMode(PIN_EVENT2, INPUT);
+//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
+//#elif DEVICE_TYPE == 7 // Touch1
+//#endif

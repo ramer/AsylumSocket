@@ -3,14 +3,21 @@
 #ifndef _SOCKET_h
 #define _SOCKET_h
 
-#include "ESP8266WiFi.h"
+#include <ESP8266WiFi.h>
+#include <PubSubClient.h>
 #include "Device.h"
 
 class Socket : public Device
 {
-  public:
-    Socket(byte pin_event, byte pin_action) : Device(pin_event, pin_action) {};
-    void init(PubSubClient *mqttClient);
+public:
+  Socket(byte pin_event, byte pin_action);
+
+  //void onUpdatedState(std::function<void(ulong)> onUpdatedStateCallback);
+
+  void initialize(PubSubClient *ptr_mqttClient, String prefix = "Socket");
+
+protected:
+  //std::function<void(ulong)> updatedStateCallback;
 };
 
 #endif

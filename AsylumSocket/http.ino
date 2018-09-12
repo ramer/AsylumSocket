@@ -3,7 +3,7 @@ extern "C" uint32_t _SPIFFS_start;
 extern "C" uint32_t _SPIFFS_end;
 
 void httpserver_setuphandlers() {
-  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html").setAuthentication(config.locallogin, config.localpassword);
+  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html").setAuthentication(config["locallogin"].c_str(), config["localpassword"].c_str());
   httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
   httpServer.on("/submit", HTTP_POST, handleConfigSave);
@@ -81,55 +81,19 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
 }
 
 void handleConfigSave(AsyncWebServerRequest *request) {
-  if (request->hasParam("description", true)) {
-    request->getParam("description", true)->value().toCharArray(config.description, sizeof(config.description) - 1);
+  for (auto &itemDefault : configDefault) {
+    if (!request->hasParam(itemDefault.first, true)) {
+      Serial.printf("API configuration does not have (%s) key, use default value (%s) \n", itemDefault.first.c_str(), itemDefault.second.c_str());
+      config[itemDefault.first] = itemDefault.second;
+    }
+    else {
+      config[itemDefault.first] = request->getParam(itemDefault.first, true)->value();
+    }
   }
-  if (request->hasParam("mode", true)) {
-    config.mode = request->getParam("mode", true)->value().toInt();
-  }
-  if (request->hasParam("apssid", true)) {
-    request->getParam("apssid", true)->value().toCharArray(config.apssid, sizeof(config.apssid) - 1);
-  }
-  if (request->hasParam("apkey", true) && strcmp(request->getParam("apkey", true)->value().c_str(), "          ") != 0) {
-    request->getParam("apkey", true)->value().toCharArray(config.apkey, sizeof(config.apkey) - 1);
-  }
-  if (request->hasParam("locallogin", true)) {
-    request->getParam("locallogin", true)->value().toCharArray(config.locallogin, sizeof(config.locallogin) - 1);
-  }
-  if (request->hasParam("localpassword", true) && strcmp(request->getParam("localpassword", true)->value().c_str(), "          ") != 0) {
-    request->getParam("localpassword", true)->value().toCharArray(config.localpassword, sizeof(config.localpassword) - 1);
-  }
-  if (request->hasParam("mqttserver", true)) {
-    request->getParam("mqttserver", true)->value().toCharArray(config.mqttserver, sizeof(config.mqttserver) - 1);
-  }
-  if (request->hasParam("mqttlogin", true)) {
-    request->getParam("mqttlogin", true)->value().toCharArray(config.mqttlogin, sizeof(config.mqttlogin) - 1);
-  }
-  if (request->hasParam("mqttpassword", true) && strcmp(request->getParam("mqttpassword", true)->value().c_str(), "          ") != 0) {
-    request->getParam("mqttpassword", true)->value().toCharArray(config.mqttpassword, sizeof(config.mqttpassword) - 1);
-  }
-  if (request->hasParam("onboot", true)) {
-    config.onboot = request->getParam("onboot", true)->value().toInt();
-  }
-  if (request->hasParam("onboardled", true)) {
-    config.onboardled = request->getParam("onboardled", true)->value().toInt();
-  }
-  if (request->hasParam("extension1", true)) {
-    request->getParam("extension1", true)->value().toCharArray(config.extension1, sizeof(config.extension1) - 1);
-  }
-  if (request->hasParam("extension2", true)) {
-    request->getParam("extension2", true)->value().toCharArray(config.extension2, sizeof(config.extension2) - 1);
-  }
-  if (request->hasParam("extension3", true)) {
-    request->getParam("extension3", true)->value().toCharArray(config.extension3, sizeof(config.extension3) - 1);
-  }
+
+  Config::save(); 
 
   request->send(200, "text/html", "Configuration saved.");
-
-  Serial.printf("Saving config ... ");
-  save_eeprom();
-  Serial.printf("success \n");
-
   has_new_config = true;
 }
 
@@ -139,21 +103,9 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   JsonObject& root = jsonBuffer.createObject();
 
   root["uid"] = device.uid;
-  root["description"] = config.description;
-  root["mode"] = config.mode;
-  root["type"] = DEVICE_TYPE;
-  root["apssid"] = config.apssid;
-  root["apkey"] = "          ";
-  root["locallogin"] = config.locallogin;
-  root["localpassword"] = "          ";
-  root["mqttserver"] = config.mqttserver;
-  root["mqttlogin"] = config.mqttlogin;
-  root["mqttpassword"] = "          ";
-  root["onboot"] = config.onboot;
-  root["onboardled"] = config.onboardled;
-  root["extension1"] = config.extension1;
-  root["extension2"] = config.extension2;
-  root["extension3"] = config.extension3;
+  for (auto &item : config) {
+    root[item.first] = item.second;
+  }
 
   JsonArray& networks = root.createNestedArray("networks");
 

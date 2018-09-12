@@ -44,6 +44,6 @@ void mqtt_callback(char* topic, byte* pl, unsigned int length) {
 
   if (strcmp(topic, device.mqtt_topic_erase.c_str()) == 0) {
     Serial.printf(" - erase config command recieved \n");
-    erase_eeprom();
+    //eeprom_erase();
   }
 }

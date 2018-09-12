@@ -1,19 +1,18 @@
 // Device.cpp
 
 #include "Device.h"
-#include <PubSubClient.h>
 
 Device::Device(byte event, byte action) {
   pin_event = event;
   pin_action = action;
 }
 
-void Device::onUpdatedState(std::function<void(ulong)> onUpdateStateCallback) {
-  updatedStateCallback = onUpdateStateCallback;
-}
+//void Device::onUpdatedState(std::function<void(ulong)> onUpdateStateCallback) {
+//  updatedStateCallback = onUpdateStateCallback;
+//}
 
-void Device::initialize(String prefix, PubSubClient *mqttClient) {
-  _mqttClient = mqttClient;
+void Device::initialize(PubSubClient *ptr_mqttClient, String prefix) {
+  _mqttClient = ptr_mqttClient;
 
   pinMode(pin_event, INPUT);
   pinMode(pin_action, OUTPUT);	digitalWrite(pin_action, LOW);		// default initial value
@@ -67,8 +66,6 @@ void Device::updateState(ulong state_new, ulong *ptr_state, ulong *ptr_state_old
   
   Serial.printf(" - state changed to %u \n", state_new);
   mqtt_state_published = false;
-
-  updatedStateCallback(state_new);
 }
 
 void Device::invertState(ulong *ptr_state, ulong *ptr_state_old, byte pin) {

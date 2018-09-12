@@ -3,39 +3,41 @@
 #ifndef _CONFIG_h
 #define _CONFIG_h
 
-#include "ESP8266WiFi.h"
-#include <EEPROM.h>
+#define CONFIG_FILENAME "/config.json"
 
-class Config
-{
-  public:
-    void dump();
-    bool load();
-    void save();
-    void erase();
+#include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
+#include <FS.h>
+#include <map>
 
-    struct ConfigStruct {
-      ulong     state;
-      ulong     state2;
-      ulong     state3;
-      ulong     state4;
-      char		  description[128];
-      byte    	mode;
-      char		  apssid[32];
-      char		  apkey[32];
-      char		  locallogin[32];
-      char		  localpassword[32];
-      char		  mqttserver[256];
-      char		  mqttlogin[32];
-      char		  mqttpassword[32];
-      byte    	onboot;
-      byte    	onboardled;
-      char    	extension1[32];
-      char    	extension2[32];
-      char    	extension3[32];
-      byte		  validator;
-    } c;
+std::map<String, String> config;
+std::map<String, String> configDefault = {
+  { "state", "0" },
+  { "state2", "0" },
+  { "state3", "0" },
+  { "state4", "0" },
+  { "description", "" },
+  { "mode", "0" },
+  { "apssid", "" },
+  { "apkey", "" },
+  { "locallogin", "" },
+  { "localpassword", "" },
+  { "mqttserver", "" },
+  { "mqttlogin", "" },
+  { "mqttpassword", "" },
+  { "onboot", "0" },
+  { "onboardled", "0" },
+  { "extension1", "" },
+  { "extension2", "" },
+  { "extension3", "" },
+};
+
+class Config {
+public:
+  Config();
+  
+  static bool load();
+  static void save();
 };
 
 #endif
-

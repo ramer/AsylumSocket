@@ -1,11 +1,4 @@
 ﻿
-void updatedState(ulong new_state) {
-  if (config.onboot == 2 || config.onboot == 3) {
-    config.state = device.state || device.state2 || device.state3;
-    save_eeprom();
-  }
-}
-
 //void updateState(ulong state_new) {
 //  state_previous = (state_new > 0 && config.state > 0) ? 0 : config.state;
 //  config.state = state_new;
@@ -156,7 +149,7 @@ void blynk() {
   else {
     if (millis() - time_led > INTERVAL_LED_SETUP) {
       time_led = millis();
-      digitalWrite(PIN_LED, (config.onboardled == 0 ? HIGH : LOW)); // LED circuit inverted
+      digitalWrite(PIN_LED, (config["onboardled"].toInt() == 0 ? HIGH : LOW)); // LED circuit inverted
     }
   }
 }

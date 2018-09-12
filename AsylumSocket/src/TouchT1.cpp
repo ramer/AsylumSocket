@@ -9,13 +9,12 @@ TouchT1::TouchT1(byte event, byte action, byte event2, byte action2, byte event3
   pin_action3 = action3;
 };
 
-void TouchT1::init(PubSubClient * mqttClient)
-{
-  TouchT1::initialize("TouchT1", mqttClient);
-}
+//void TouchT1::onUpdatedState(std::function<void(ulong, ulong, ulong)> onUpdateStateCallback) {
+//  updatedStateCallback = onUpdateStateCallback;
+//}
 
-void TouchT1::initialize(String prefix, PubSubClient *mqttClient) {
-  _mqttClient = mqttClient;
+void TouchT1::initialize(PubSubClient *ptr_mqttClient, String prefix) {
+  Device::initialize(ptr_mqttClient, prefix);
 
   pinMode(pin_event, INPUT);
   pinMode(pin_action, OUTPUT);	digitalWrite(pin_action, LOW);		// default initial value

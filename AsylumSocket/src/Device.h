@@ -3,7 +3,7 @@
 #ifndef _DEVICE_h
 #define _DEVICE_h
 
-#include "ESP8266WiFi.h"
+#include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 
 #define INTERVAL_EVENT_DEBOUNCE	      100
@@ -15,9 +15,10 @@ class Device
 {
 public:
   Device(byte event, byte action);
-  void onUpdatedState(std::function<void(ulong)> onUpdatedStateCallback);
 
-  void initialize(String device_prefix, PubSubClient *mqttClient);
+  //void onUpdatedState(std::function<void(ulong)> onUpdatedStateCallback);
+
+  void initialize(PubSubClient *ptr_mqttClient, String prefix = "Device");
   void checkButtons();
   void updateState(ulong state_new, ulong *ptr_state = 0, ulong *ptr_state_old = 0, byte pin = 12); // 12 is default action value
   void invertState(ulong *ptr_state = 0, ulong *ptr_state_old = 0, byte pin = 12);
@@ -38,7 +39,7 @@ public:
   String mqtt_topic_erase;
 
 protected:
-  std::function<void(ulong)> updatedStateCallback;
+  //std::function<void(ulong)> updatedStateCallback;
 
   void generateUid(String prefix);
   void generateGlobalTopics();
@@ -46,6 +47,7 @@ protected:
   bool buttonPressed(byte pin, bool * laststate);
 
   PubSubClient * _mqttClient;
+
   bool  mqtt_state_published = false;
   ulong	mqtt_state_publishedtime = 0;
 
