@@ -13,8 +13,8 @@ TouchT1::TouchT1(byte event, byte action, byte event2, byte action2, byte event3
 //  updatedStateCallback = onUpdateStateCallback;
 //}
 
-void TouchT1::initialize(PubSubClient *ptr_mqttClient, String prefix) {
-  Device::initialize(ptr_mqttClient, prefix);
+void TouchT1::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+  Device::initialize(ptr_mqttClient, ptr_config, prefix);
 
   pinMode(pin_event, INPUT);
   pinMode(pin_action, OUTPUT);	digitalWrite(pin_action, LOW);		// default initial value
@@ -37,10 +37,16 @@ void TouchT1::generateTopics() {
   mqtt_topic_pub3 = uid + "/sub3";
 }
 
-void TouchT1::checkButtons() {
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, pin_action); }
-  if (buttonPressed(pin_event2, &pin_event_laststate2)) { invertState(&state2, &state2_old, pin_action2); }
-  if (buttonPressed(pin_event3, &pin_event_laststate3)) { invertState(&state3, &state3_old, pin_action3); }
+void TouchT1::update() {
+  // process buttons
+  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, &state_published, pin_action); }
+  if (buttonPressed(pin_event2, &pin_event_laststate2)) { invertState(&state2, &state_old2, &state_published2, pin_action2); }
+  if (buttonPressed(pin_event3, &pin_event_laststate3)) { invertState(&state3, &state_old3, &state_published3, pin_action3); }
+
+  // check state published
+  if (_mqttClient->connected() && !state_published && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub, state, &state_published); }
+  if (_mqttClient->connected() && !state_published2 && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub2, state2, &state_published2); }
+  if (_mqttClient->connected() && !state_published3 && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub3, state3, &state_published3); }
 }
 
 void TouchT1::handlePayload(char* topic, String payload) {
@@ -48,45 +54,45 @@ void TouchT1::handlePayload(char* topic, String payload) {
     if (payload == "-1") {
       Serial.printf(" - value invert command recieved \n");
 
-      invertState(&state, &state_old, pin_action);
-      publishState(mqtt_topic_pub, state); // force
+      invertState(&state, &state_old, &state_published, pin_action);
+      publishState(mqtt_topic_pub, state, &state_published); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state, &state_old, pin_action);
-      publishState(mqtt_topic_pub, state); // force
+      updateState(newvalue, &state, &state_old, &state_published, pin_action);
+      publishState(mqtt_topic_pub, state, &state_published); // force
     }
   }
   if (strcmp(topic, mqtt_topic_sub2.c_str()) == 0) {
     if (payload == "-1") {
       Serial.printf(" - value2 invert command recieved \n");
 
-      invertState(&state2, &state2_old, pin_action2);
-      publishState(mqtt_topic_pub2, state2); // force
+      invertState(&state2, &state_old2, &state_published2, pin_action2);
+      publishState(mqtt_topic_pub2, state2, &state_published2); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value2 recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state2, &state2_old, pin_action2);
-      publishState(mqtt_topic_pub2, state2); // force
+      updateState(newvalue, &state2, &state_old2, &state_published2, pin_action2);
+      publishState(mqtt_topic_pub2, state2, &state_published2); // force
     }
   }
   if (strcmp(topic, mqtt_topic_sub3.c_str()) == 0) {
     if (payload == "-1") {
       Serial.printf(" - value3 invert command recieved \n");
 
-      invertState(&state3, &state3_old, pin_action3);
-      publishState(mqtt_topic_pub3, state3); // force
+      invertState(&state3, &state_old3, &state_published3, pin_action3);
+      publishState(mqtt_topic_pub3, state3, &state_published3); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value3 recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state3, &state3_old, pin_action3);
-      publishState(mqtt_topic_pub3, state3); // force
+      updateState(newvalue, &state3, &state_old3, &state_published3, pin_action3);
+      publishState(mqtt_topic_pub3, state3, &state_published3); // force
     }
   }
 }
@@ -98,16 +104,5 @@ void TouchT1::subscribe() {
     _mqttClient->subscribe(mqtt_topic_sub3.c_str());
     _mqttClient->subscribe(mqtt_topic_setup.c_str());
     _mqttClient->subscribe(mqtt_topic_reboot.c_str());
-    _mqttClient->subscribe(mqtt_topic_erase.c_str());
-  }
-}
-
-void TouchT1::checkPublished() {
-  if (!mqtt_state_published && millis() - mqtt_state_publishedtime > INTERVAL_STATE_PUBLISH) {
-    publishState(mqtt_topic_pub, state);
-    publishState(mqtt_topic_pub2, state2);
-    publishState(mqtt_topic_pub3, state3);
-    mqtt_state_published = true;
-    mqtt_state_publishedtime = millis();
   }
 }

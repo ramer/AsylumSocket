@@ -3,7 +3,7 @@ extern "C" uint32_t _SPIFFS_start;
 extern "C" uint32_t _SPIFFS_end;
 
 void httpserver_setuphandlers() {
-  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html").setAuthentication(config["locallogin"].c_str(), config["localpassword"].c_str());
+  httpServer.serveStatic("/", SPIFFS, "/").setDefaultFile("setup.html"); // .setAuthentication(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str());
   httpServer.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 
   httpServer.on("/submit", HTTP_POST, handleConfigSave);
@@ -81,17 +81,16 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
 }
 
 void handleConfigSave(AsyncWebServerRequest *request) {
-  for (auto &itemDefault : configDefault) {
+  for (auto &itemDefault : config.def_conf) {
     if (!request->hasParam(itemDefault.first, true)) {
       Serial.printf("API configuration does not have (%s) key, use default value (%s) \n", itemDefault.first.c_str(), itemDefault.second.c_str());
-      config[itemDefault.first] = itemDefault.second;
+      config.cur_conf[itemDefault.first] = itemDefault.second;
     }
     else {
-      config[itemDefault.first] = request->getParam(itemDefault.first, true)->value();
+      config.cur_conf[itemDefault.first] = request->getParam(itemDefault.first, true)->value();
     }
   }
-
-  Config::save(); 
+  config.saveConfig(); 
 
   request->send(200, "text/html", "Configuration saved.");
   has_new_config = true;
@@ -103,7 +102,7 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   JsonObject& root = jsonBuffer.createObject();
 
   root["uid"] = device.uid;
-  for (auto &item : config) {
+  for (auto &item : config.cur_conf) {
     root[item.first] = item.second;
   }
 

@@ -14,16 +14,15 @@ public:
 
   //void onUpdatedState(std::function<void(ulong, ulong, ulong)> onUpdatedStateCallback);
 
-  void initialize(PubSubClient *ptr_mqttClient, String prefix = "TouchT1");
-  void checkButtons();
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "TouchT1");
+  void update();
   void handlePayload(char * topic, String payload);
   void subscribe();
-  void checkPublished();
 
   ulong state2;
-  ulong state2_old;
+  ulong state_old2;
   ulong state3;
-  ulong state3_old;
+  ulong state_old3;
 
   String mqtt_topic_pub2;
   String mqtt_topic_pub3;
@@ -34,6 +33,9 @@ protected:
   //std::function<void(ulong, ulong, ulong)> updatedStateCallback;
 
   void generateTopics();
+
+  bool state_published2 = false;
+  bool state_published3 = false;
 
   byte pin_event2;
   byte pin_action2;

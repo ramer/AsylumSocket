@@ -41,9 +41,4 @@ void mqtt_callback(char* topic, byte* pl, unsigned int length) {
     Serial.printf(" - reboot command recieved \n");
     reboot();
 	}
-
-  if (strcmp(topic, device.mqtt_topic_erase.c_str()) == 0) {
-    Serial.printf(" - erase config command recieved \n");
-    //eeprom_erase();
-  }
 }

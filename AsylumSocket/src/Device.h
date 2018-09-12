@@ -5,6 +5,7 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include "Config.h"
 
 #define INTERVAL_EVENT_DEBOUNCE	      100
 #define INTERVAL_LED_SETUP	          500
@@ -18,14 +19,13 @@ public:
 
   //void onUpdatedState(std::function<void(ulong)> onUpdatedStateCallback);
 
-  void initialize(PubSubClient *ptr_mqttClient, String prefix = "Device");
-  void checkButtons();
-  void updateState(ulong state_new, ulong *ptr_state = 0, ulong *ptr_state_old = 0, byte pin = 12); // 12 is default action value
-  void invertState(ulong *ptr_state = 0, ulong *ptr_state_old = 0, byte pin = 12);
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Device");
+  void update();
+  void updateState(ulong state_new, ulong *ptr_state = 0, ulong *ptr_state_old = 0, bool *ptr_state_published = 0, byte pin = 12); // 12 is default action value
+  void invertState(ulong *ptr_state = 0, ulong *ptr_state_old = 0, bool *ptr_state_published = 0, byte pin = 12);
   void handlePayload(char* topic, String payload);
   void subscribe();
-  void publishState(String t, ulong s);
-  void checkPublished();
+  void publishState(String topic, ulong statepayload, bool *ptr_state_published);
 
   ulong state;
   ulong state_old;
@@ -36,7 +36,6 @@ public:
   String mqtt_topic_status;
   String mqtt_topic_setup;
   String mqtt_topic_reboot;
-  String mqtt_topic_erase;
 
 protected:
   //std::function<void(ulong)> updatedStateCallback;
@@ -47,9 +46,10 @@ protected:
   bool buttonPressed(byte pin, bool * laststate);
 
   PubSubClient * _mqttClient;
+  Config * _config;
 
-  bool  mqtt_state_published = false;
-  ulong	mqtt_state_publishedtime = 0;
+  bool  state_published = false;
+  ulong	state_publishedtime = 0;
 
   byte  pin_event;
   byte  pin_action;

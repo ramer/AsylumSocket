@@ -99,7 +99,7 @@ void initializeRegularMode() {
   Serial.printf("done. Found %u networks \n", n);
 
 	Serial.printf("Configuring MQTT-client ... ");
-	mqttClient.setServer(config["mqttserver"].c_str(), 1883);
+	mqttClient.setServer(config.cur_conf["mqttserver"].c_str(), 1883);
 	mqttClient.setCallback(mqtt_callback);
 	Serial.printf("configured \n");
 }

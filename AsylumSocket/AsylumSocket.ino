@@ -43,6 +43,32 @@
 #define INTERVAL_CONNECTION_WIFI	    5000
 #define INTERVAL_CONNECTION_MQTT	    5000
 
+
+//DECLARATIONS
+
+int8_t mode = -1; // 0 - regular , 1 - setup , 2 - smart config
+
+bool laststate_mode = false;
+bool laststate_led = false;
+
+bool has_new_update = false;
+bool has_new_config = false;
+
+ulong time_mode = 0;
+ulong time_mode_set = 0;
+ulong time_led = 0;
+
+ulong	time_connection_wifi = 0;
+ulong	time_connection_mqtt = 0;
+
+DNSServer				dnsServer;
+WiFiClient			wifiClient;
+PubSubClient		mqttClient(wifiClient);
+AsyncWebServer  httpServer(PORT_HTTP);
+IPAddress				wifi_AP_IP  (192, 168, 4, 1);
+IPAddress				wifi_AP_MASK(255, 255, 255, 0);
+Config          config;
+
 #if DEVICE_TYPE == 0
   #include "src/Socket.h"
   Socket device(0, 12);
@@ -88,34 +114,6 @@
 #endif
 
 
-//DECLARATIONS
-
-int8_t mode = -1; // 0 - regular , 1 - setup , 2 - smart config
-
-bool laststate_mode = false;
-bool laststate_led = false;
-
-bool has_new_update = false;
-bool has_new_config = false;
-
-ulong time_mode = 0;
-ulong time_mode_set = 0;
-ulong time_led = 0;
-
-ulong	time_connection_wifi = 0;
-ulong	time_connection_mqtt = 0;
-
-DNSServer				dnsServer;
-WiFiClient			wifiClient;
-PubSubClient		mqttClient(wifiClient);
-AsyncWebServer  httpServer(PORT_HTTP);
-IPAddress				wifi_AP_IP  (192, 168, 4, 1);
-IPAddress				wifi_AP_MASK(255, 255, 255, 0);
-
-//EEPROM stored configuration
-
-
-
 void setup() {
 #if DEBUG == true
   Serial.begin(74880);
@@ -139,36 +137,23 @@ void setup() {
     Serial.printf("error \n");
   }
 
+  bool configured = config.loadConfig(); 
+
   Serial.printf("Initializing device ... ");
-  device.initialize(&mqttClient);
+  device.initialize(&mqttClient, &config);
   Serial.printf("%s \n", device.uid.c_str());
-
-  if (Config::load()) {
-    //Serial.printf(" - description:         %s \n", config["description"].c_str());
-    //Serial.printf(" - mode:                %u \n", config["mode"].toInt());
-    //Serial.printf(" - apssid:              %s \n", config["apssid"].c_str());
-    //Serial.printf(" - apkey:               %s \n", config["apkey"].c_str());
-    //Serial.printf(" - locallogin:          %s \n", config["locallogin"].c_str());
-    //Serial.printf(" - localpassword:       %s \n", config["localpassword"].c_str());
-    //Serial.printf(" - mqttserver:          %s \n", config["mqttserver"].c_str());
-    //Serial.printf(" - mqttlogin:           %s \n", config["mqttlogin"].c_str());
-    //Serial.printf(" - mqttpassword:        %s \n", config["mqttpassword"].c_str());
-    //Serial.printf(" - onboot:              %u \n", config["onboot"].toInt());
-    //Serial.printf(" - onboardled:          %u \n", config["onboardled"].toInt());
-    //Serial.printf(" - extension 1 / 2 / 3: %s / %s / %s \n", config["extension1"].c_str(), config["extension2"].c_str(), config["extension3"].c_str());
-
-    //device.setOnBootState();
-
-    set_mode(0);
-  }
-  else {
-    set_mode(1);
-  }
 
   Serial.printf("Starting HTTP-server ... ");
   httpserver_setuphandlers();
   httpServer.begin();
   Serial.printf("started \n");
+
+  if (configured) {
+    set_mode(0);
+  }
+  else {
+    set_mode(1);
+  }
 }
 
 void loop() {
@@ -185,8 +170,8 @@ void loop() {
       case WL_CONNECTED:
         Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
 
-        config["apssid"] = WiFi.SSID();
-        config["apkey"] = WiFi.psk();
+        config.cur_conf["apssid"] = WiFi.SSID();
+        config.cur_conf["apkey"] = WiFi.psk();
           
         initializeSetupMode(); // cant use 'set_mode()' - we can't deinitialize smart config mode yet
         mode = 2; // crutch
@@ -221,9 +206,9 @@ void loop() {
 			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
 				time_connection_wifi = millis();
 
-        if (config["apssid"].length() != 0) {
-          Serial.printf("Connecting to access point: %s , password: %s \n", config["apssid"].c_str(), config["apkey"].c_str());
-          WiFi.begin(config["apssid"].c_str(), config["apkey"].c_str());
+        if (config.cur_conf["apssid"].length() != 0) {
+          Serial.printf("Connecting to access point: %s , password: %s \n", config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str());
+          WiFi.begin(config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str());
         } else {
           Serial.printf("Connecting to access point error: no SSID specified \n");
         }
@@ -236,9 +221,9 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config["mqttserver"].c_str(), device.uid.c_str(), config["mqttlogin"].c_str(), config["mqttpassword"].c_str());
+					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.cur_conf["mqttserver"].c_str(), device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str());
 
-					if (mqttClient.connect(device.uid.c_str(), config["mqttlogin"].c_str(), config["mqttpassword"].c_str())) {
+					if (mqttClient.connect(device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str())) {
 						Serial.printf("connected, state = %i \n", mqttClient.state());
 						
             device.subscribe();
@@ -250,17 +235,12 @@ void loop() {
 					}
 				}
 			}
-			else {
-
-        device.checkPublished();
-
-			}
 		}
 	}
 
 	// LOOP ANYWAY
 
-  device.checkButtons();
+  device.update();
   check_newupdate();
   check_newconfig();
   check_mode();

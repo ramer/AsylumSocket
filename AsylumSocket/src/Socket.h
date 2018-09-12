@@ -14,7 +14,7 @@ public:
 
   //void onUpdatedState(std::function<void(ulong)> onUpdatedStateCallback);
 
-  void initialize(PubSubClient *ptr_mqttClient, String prefix = "Socket");
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Socket");
 
 protected:
   //std::function<void(ulong)> updatedStateCallback;

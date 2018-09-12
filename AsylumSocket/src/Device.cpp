@@ -11,8 +11,9 @@ Device::Device(byte event, byte action) {
 //  updatedStateCallback = onUpdateStateCallback;
 //}
 
-void Device::initialize(PubSubClient *ptr_mqttClient, String prefix) {
+void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
   _mqttClient = ptr_mqttClient;
+  _config = ptr_config;
 
   pinMode(pin_event, INPUT);
   pinMode(pin_action, OUTPUT);	digitalWrite(pin_action, LOW);		// default initial value
@@ -38,7 +39,6 @@ void Device::generateGlobalTopics() {
   mqtt_topic_status = uid + "/status";
   mqtt_topic_setup = uid + "/setup";
   mqtt_topic_reboot = uid + "/reboot";
-  mqtt_topic_erase = uid + "/erase";
 }
 
 void Device::generateTopics(){
@@ -46,47 +46,51 @@ void Device::generateTopics(){
   mqtt_topic_pub = uid + "/sub";
 }
 
-void Device::checkButtons() {
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, pin_action); }
+void Device::update() {
+  // process buttons
+  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, &state_published, pin_action); }
+
+  // check state published
+  if (_mqttClient->connected() && !state_published && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub, state, &state_published); }
 }
 
-void Device::updateState(ulong state_new, ulong *ptr_state, ulong *ptr_state_old, byte pin) {
-  if (ptr_state != 0 && ptr_state_old != 0) {
+void Device::updateState(ulong state_new, ulong *ptr_state, ulong *ptr_state_old, bool *ptr_state_published, byte pin) {
+  if (ptr_state != 0 && ptr_state_old != 0 && ptr_state_published != 0) {
     // pointers passed
     *ptr_state_old = (state_new > 0 && *ptr_state > 0) ? 0 : *ptr_state;
     *ptr_state = state_new;
     digitalWrite(pin, (*ptr_state == 0 ? LOW : HIGH));
+    *ptr_state_published = false;
   }
   else {
     // no pointers passed; take default states
     state_old = (state_new > 0 && state_old > 0) ? 0 : state_old;
     state = state_new;
     digitalWrite(pin, (state == 0 ? LOW : HIGH));
+    state_published = false;
   }
-  
   Serial.printf(" - state changed to %u \n", state_new);
-  mqtt_state_published = false;
 }
 
-void Device::invertState(ulong *ptr_state, ulong *ptr_state_old, byte pin) {
-  if (ptr_state != 0 && ptr_state_old != 0) {
+void Device::invertState(ulong *ptr_state, ulong *ptr_state_old, bool *ptr_state_published, byte pin) {
+  if (ptr_state != 0 && ptr_state_old != 0 && ptr_state_published != 0) {
     // pointers passed
     if (*ptr_state == 0) {
       if (*ptr_state_old == 0) { *ptr_state_old = 1; }
-      updateState(*ptr_state_old, ptr_state, ptr_state_old, pin);
+      updateState(*ptr_state_old, ptr_state, ptr_state_old, ptr_state_published, pin);
     }
     else {
-      updateState(0, ptr_state, ptr_state_old, pin);
+      updateState(0, ptr_state, ptr_state_old, ptr_state_published, pin);
     }
   }
   else {
     // no pointers passed; take default states
     if (state == 0) {
       if (state_old == 0) { state_old = 1; }
-      updateState(state_old, &state, &state_old, pin);
+      updateState(state_old, &state, &state_old, &state_published, pin);
     }
     else {
-      updateState(0, &state, &state_old, pin);
+      updateState(0, &state, &state_old, &state_published, pin);
     }
   }
 }
@@ -96,15 +100,15 @@ void Device::handlePayload(char* topic, String payload) {
     if (payload == "-1") {
       Serial.printf(" - value invert command recieved \n");
 
-      invertState(&state, &state_old, pin_action);
-      publishState(mqtt_topic_pub, state); // force
+      invertState(&state, &state_old, &state_published, pin_action);
+      publishState(mqtt_topic_pub, state, &state_published); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state, &state_old, pin_action);
-      publishState(mqtt_topic_pub, state); // force
+      updateState(newvalue, &state, &state_old, &state_published, pin_action);
+      publishState(mqtt_topic_pub, state, &state_published); // force
     }
   }
 }
@@ -114,26 +118,17 @@ void Device::subscribe() {
     _mqttClient->subscribe(mqtt_topic_sub.c_str());
     _mqttClient->subscribe(mqtt_topic_setup.c_str());
     _mqttClient->subscribe(mqtt_topic_reboot.c_str());
-    _mqttClient->subscribe(mqtt_topic_erase.c_str());
   }
 }
 
-void Device::publishState(String t, ulong s) {
+void Device::publishState(String topic, ulong statepayload, bool *ptr_state_published) {
   if (_mqttClient->connected()) {
-    _mqttClient->publish(t.c_str(), String(s).c_str(), true);
+    _mqttClient->publish(topic.c_str(), String(statepayload).c_str(), true);
 
-    Serial.printf(" - message sent [%s] %s \n", t.c_str(), String(s).c_str());
+    Serial.printf(" - message sent [%s] %s \n", topic.c_str(), String(statepayload).c_str());
 
-    mqtt_state_published = true;
-    mqtt_state_publishedtime = millis();
-  }
-}
-
-void Device::checkPublished() {
-  if (!mqtt_state_published && millis() - mqtt_state_publishedtime > INTERVAL_STATE_PUBLISH) {
-    publishState(mqtt_topic_pub, state);
-    mqtt_state_published = true;
-    mqtt_state_publishedtime = millis();
+    *ptr_state_published = true;
+    state_publishedtime = millis();
   }
 }
 
