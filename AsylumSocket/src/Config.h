@@ -8,7 +8,12 @@
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
 #include <FS.h>
+#include <EEPROM.h>
 #include <map>
+
+extern "C" {
+  #include "spi_flash.h"
+}
 
 #define CONFIG_FILENAME_CONFIG "/config.json"
 #define CONFIG_FILENAME_STATE "/state.json"
@@ -22,7 +27,9 @@ public:
   std::map<String, String> def_conf;
 
   bool loadConfig();
+  bool loadConfig(bool eeprom);
   void saveConfig();
+  void saveConfig(bool eeprom);
   std::map<String, String> loadState();
   void saveState(JsonObject &root);
 

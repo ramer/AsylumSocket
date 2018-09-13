@@ -103,7 +103,7 @@ void setup() {
     Serial.printf("error \n");
   }
 
-  bool configured = config.loadConfig(); 
+  bool configured = config.loadConfig(true);
 
   Serial.printf("Initializing device \n");
   device.initialize(&mqttClient, &config);

@@ -90,7 +90,8 @@ void handleConfigSave(AsyncWebServerRequest *request) {
       config.cur_conf[itemDefault.first] = request->getParam(itemDefault.first, true)->value();
     }
   }
-  config.saveConfig(); 
+  
+  config.saveConfig(true);
 
   request->send(200, "text/html", "Configuration saved.");
   has_new_config = true;
