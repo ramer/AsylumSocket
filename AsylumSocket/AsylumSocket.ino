@@ -19,7 +19,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  7
+#define DEVICE_TYPE  5
 
 //    0 - Socket
 //    1 - reserved
@@ -72,6 +72,9 @@ Config          config;
 #if DEVICE_TYPE == 0
   #include "src/Socket.h"
   Socket device(0, 12);
+#elif DEVICE_TYPE == 5        // IMPORTANT: use Generic ESP8285 Module
+  #include "src/Encoder.h"
+  Encoder device(12, 14, 13);
 #elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
   #include "src/TouchT1.h"
   TouchT1 device(0, 12, 9, 5, 10, 4);
@@ -103,7 +106,7 @@ void setup() {
     Serial.printf("error \n");
   }
 
-  bool configured = config.loadConfig(true);
+  bool configured = config.loadConfig();
 
   Serial.printf("Initializing device \n");
   device.initialize(&mqttClient, &config);
@@ -213,31 +216,6 @@ void loop() {
   blynk();
 
 } // loop
-
-#if DEVICE_TYPE == 5 // Encoder
-//void doEncoderA()
-//{
-//  if (PastB) {
-//    if (encoderstate > 0) { encoderstate--; }
-//  }
-//  else {
-//    if (encoderstate < 255) { encoderstate++; }
-//  }
-//}
-//
-//void doEncoderB()
-//{
-//  PastB = !PastB;
-//}
-void doEncoder() {
-  if (digitalRead(PIN_A) == digitalRead(PIN_B)) { // CCW
-    if (encoderstate > 0) { encoderstate--; }
-  }
-  else { // CW
-    if (encoderstate < 255) { encoderstate++; }
-  }
-}
-#endif
 
 //#if DEVICE_TYPE == 0
 //#include "src/Socket.h"

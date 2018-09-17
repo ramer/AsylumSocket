@@ -10,7 +10,7 @@
 class Socket : public Device
 {
 public:
-  Socket(byte pin_event, byte pin_action);
+  Socket(byte event, byte action);
 
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Socket");
 

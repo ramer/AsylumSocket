@@ -91,7 +91,7 @@ void handleConfigSave(AsyncWebServerRequest *request) {
     }
   }
   
-  config.saveConfig(true);
+  config.saveConfig();
 
   request->send(200, "text/html", "Configuration saved.");
   has_new_config = true;
