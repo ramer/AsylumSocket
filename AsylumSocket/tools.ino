@@ -14,7 +14,7 @@
 //#elif DEVICE_TYPE == 3 // Dimmer
 //  i2c_sendvalue(config.state);
 //#elif DEVICE_TYPE == 4 // Strip
-//  strip_updated_flag = false;
+//  strip_updated = false;
 //#elif DEVICE_TYPE == 5 // Encoder
 //  encoderstate = config.state;
 //  if (config.state >= 250) { digitalWrite(PIN_ACTION, HIGH); }

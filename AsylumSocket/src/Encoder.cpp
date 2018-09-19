@@ -76,7 +76,7 @@ void Encoder::doEncoder() {
   //if (seqA == 0b00001011 && seqB == 0b00001001) encoderstate += ENCODER_STEP;
   if (seqA == 0b00001001 && seqB == 0b00000011) encoderstate -= ENCODER_STEP; // CCW
   //if (seqA == 0b00001001 && seqB == 0b00000011) encoderstate -= ENCODER_STEP;
-  encoderstate = constrain(encoderstate, 0, 255);
+  encoderstate = encoderstate < 0 ? 0 : (encoderstate > 255 ? 255 : encoderstate);
 }
 
 void Encoder::updateState(ulong state_new, ulong *ptr_state, ulong *ptr_state_old, bool *ptr_state_published, byte pin) {

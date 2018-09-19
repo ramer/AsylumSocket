@@ -116,7 +116,6 @@ typedef long __PTRDIFF_TYPE__;
 #include "http.ino"
 #include "mqtt.ino"
 #include "setup.ino"
-#include "strip.ino"
 #include "tools.ino"
 #endif
 #endif

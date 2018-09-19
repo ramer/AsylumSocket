@@ -16,10 +16,9 @@
 #include <WiFiUdp.h>
 #include "src/Config.h"
 
-
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  5
+#define DEVICE_TYPE  4
 
 //    0 - Socket
 //    1 - reserved
@@ -72,6 +71,9 @@ Config          config;
 #if DEVICE_TYPE == 0
   #include "src/Socket.h"
   Socket device(0, 12);                 // event, action
+#elif DEVICE_TYPE == 4
+  #include "src/Strip.h"
+Strip device(0, 12);
 #elif DEVICE_TYPE == 5
   #include "src/Encoder.h"
   Encoder device(0, 14, 12, 13);        // event, action, A12, B13

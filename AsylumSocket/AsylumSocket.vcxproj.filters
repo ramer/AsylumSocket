@@ -20,7 +20,6 @@
     <None Include="tools.ino" />
     <None Include="AsylumSocket.ino" />
     <None Include="mqtt.ino" />
-    <None Include="strip.ino" />
     <None Include="html.ino" />
     <None Include="eeprom.ino" />
   </ItemGroup>
@@ -43,6 +42,9 @@
     <ClInclude Include="src\Encoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Strip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Socket.cpp">
@@ -58,6 +60,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Encoder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Strip.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
