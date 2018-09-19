@@ -71,16 +71,16 @@ Config          config;
 
 #if DEVICE_TYPE == 0
   #include "src/Socket.h"
-  Socket device(0, 12);
-#elif DEVICE_TYPE == 5        // IMPORTANT: use Generic ESP8285 Module
+  Socket device(0, 12);                 // event, action
+#elif DEVICE_TYPE == 5
   #include "src/Encoder.h"
-  Encoder device(12, 14, 13);
-#elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
+  Encoder device(0, 14, 12, 13);        // event, action, A12, B13
+#elif DEVICE_TYPE == 7                  // IMPORTANT: use Generic ESP8285 Module
   #include "src/TouchT1.h"
-  TouchT1 device(0, 12, 9, 5, 10, 4);
+  TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3
 #else
   #include "src/Device.h"
-  Device device(0, 12);
+  Device device(0, 12);                 // event, action,
 #endif
   
 void setup() {

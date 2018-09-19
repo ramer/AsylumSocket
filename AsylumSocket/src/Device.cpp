@@ -149,7 +149,6 @@ bool Device::buttonPressed(byte pin, bool *laststate) {
     *laststate = false;
   }
   return pressed;
-
 }
 
 void Device::loadState() {
