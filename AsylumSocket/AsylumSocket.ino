@@ -18,7 +18,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  7
+#define DEVICE_TYPE  5
 
 //    0 - Socket
 //    1 - reserved
@@ -69,16 +69,19 @@ IPAddress				wifi_AP_IP  (192, 168, 4, 1);
 IPAddress				wifi_AP_MASK(255, 255, 255, 0);
 Config          config;
 
-#if DEVICE_TYPE == 0
+#if DEVICE_TYPE == 0                    // IMPORTANT: use Generic ESP8285 Module
   #include "src/Socket.h"
   Socket device(0, 12);                 // event, action
+#elif DEVICE_TYPE == 2
+  #include "src/Motor.h"
+  Motor device(0, 12, 14);              // event, direction, action
 #elif DEVICE_TYPE == 4
   #include "src/Strip.h"
-  #define PIN_LED 12  // inverted
-Strip device(0, 13);
+  #define PIN_LED 12                    // redefine - we need GPIO 13 for LEDs
+  Strip device(0, 13);                  // event, direction, action
 #elif DEVICE_TYPE == 5
   #include "src/Encoder.h"
-  Encoder device(0, 14, 12, 13);        // event, action, A12, B13
+  Encoder device(0, 14, 12, 13);        // event, action, A, B
 #elif DEVICE_TYPE == 7                  // IMPORTANT: use Generic ESP8285 Module
   #include "src/TouchT1.h"
   TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3

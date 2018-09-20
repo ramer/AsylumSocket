@@ -20,8 +20,8 @@ public:
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Device");
 
   void update();
-  void updateState(ulong state_new);
-  void invertState();
+  virtual void updateState(ulong state_new);
+  virtual void invertState();
   void handlePayload(String topic, String payload);
 
   void subscribe();
@@ -42,10 +42,10 @@ public:
 protected:
   void generateUid(String prefix);
   void generateGlobalTopics();
-  void generateTopics();
+  virtual void generateTopics();
+  virtual void loadState();
+  virtual void saveState();
   bool buttonPressed(byte pin, bool * laststate);
-  void loadState();
-  void saveState();
   //std::function<void(ulong)> updateStateCallback;
 
   PubSubClient * _mqttClient;

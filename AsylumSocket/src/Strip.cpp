@@ -5,11 +5,20 @@
 Strip::Strip(byte event, byte action) : Device(event, action) {};
 
 void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
+  _mqttClient = ptr_mqttClient;
+  _config = ptr_config;
 
   strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, pin_action, NEO_GRB + NEO_KHZ800);
   strip.begin();
   strip.show();
+
+  generateUid(prefix);
+  generateGlobalTopics();
+  generateTopics();
+  
+  loadState();
+
+  // Device::initialize(ptr_mqttClient, ptr_config, prefix); //fully initialized
 }
 
 void Strip::update() {

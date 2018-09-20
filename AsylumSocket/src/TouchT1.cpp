@@ -10,17 +10,15 @@ TouchT1::TouchT1(byte event, byte action, byte event2, byte action2, byte event3
 };
 
 void TouchT1::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
-  Serial.println("TouchT1::initialize");
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
-
   pinMode(pin_event2, INPUT);
   pinMode(pin_action2, OUTPUT);	digitalWrite(pin_action2, LOW);		// default initial value
   pinMode(pin_event3, INPUT);
   pinMode(pin_action3, OUTPUT);	digitalWrite(pin_action3, LOW);		// default initial value
+
+  Device::initialize(ptr_mqttClient, ptr_config, prefix);
 }
 
 void TouchT1::generateTopics() {
-  Serial.println("TouchT1::generateTopics");
   mqtt_topic_sub = uid + "/pub";
   mqtt_topic_pub = uid + "/sub";
   mqtt_topic_sub2 = uid + "/pub2";
@@ -43,10 +41,9 @@ void TouchT1::update() {
 }
 
 void TouchT1::updateState2(ulong state_new) {
-  Serial.println("TouchT1::updateState2");
   state_old2 = (state_new > 0 && state_old2 > 0) ? 0 : state_old2;
   state2 = state_new;
-  digitalWrite(pin_action2, (state2 == 0 ? LOW : HIGH));
+  digitalWrite(pin_action2, (state_new == 0 ? LOW : HIGH));
   state_published2 = false;
 
   Serial.printf(" - state2 changed to %u \n", state_new);
@@ -54,7 +51,6 @@ void TouchT1::updateState2(ulong state_new) {
 }
 
 void TouchT1::invertState2() {
-  Serial.println("TouchT1::invertState2");
   if (state2 == 0) {
     if (state_old2 == 0) { state_old2 = 1; }
     updateState2(state_old2);
@@ -65,10 +61,9 @@ void TouchT1::invertState2() {
 }
 
 void TouchT1::updateState3(ulong state_new) {
-  Serial.println("TouchT1::updateState3");
   state_old3 = (state_new > 0 && state_old3 > 0) ? 0 : state_old3;
   state3 = state_new;
-  digitalWrite(pin_action3, (state3 == 0 ? LOW : HIGH));
+  digitalWrite(pin_action3, (state_new == 0 ? LOW : HIGH));
   state_published3 = false;
 
   Serial.printf(" - state3 changed to %u \n", state_new);
@@ -76,7 +71,6 @@ void TouchT1::updateState3(ulong state_new) {
 }
 
 void TouchT1::invertState3() {
-  Serial.println("TouchT1::invertState3");
   if (state3 == 0) {
     if (state_old3 == 0) { state_old3 = 1; }
     updateState3(state_old3);
@@ -86,7 +80,6 @@ void TouchT1::invertState3() {
   }
 }
 void TouchT1::handlePayload(String topic, String payload) {
-  Serial.println("TouchT1::handlePayload");
   if (topic == mqtt_topic_sub) {
     if (payload == "-1") {
       Serial.printf(" - value invert command recieved \n");
@@ -135,7 +128,6 @@ void TouchT1::handlePayload(String topic, String payload) {
 }
 
 void TouchT1::subscribe() {
-  Serial.println("TouchT1::subscribe");
   if (!_mqttClient) return;
   if (_mqttClient->connected()) {
     _mqttClient->subscribe(mqtt_topic_sub.c_str());
@@ -147,7 +139,6 @@ void TouchT1::subscribe() {
 }
 
 void TouchT1::loadState() {
-  Serial.println("TouchT1::loadState");
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0) {
@@ -193,7 +184,6 @@ void TouchT1::loadState() {
 }
 
 void TouchT1::saveState() {
-  Serial.println("TouchT1::saveState");
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0 || onboot == 1) return;

@@ -8,7 +8,6 @@ Device::Device(byte event, byte action) {
 }
 
 void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
-  Serial.println("Device::initialize");
   _mqttClient = ptr_mqttClient;
   _config = ptr_config;
 
@@ -23,7 +22,6 @@ void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String
 }
 
 void Device::generateUid(String prefix) {
-  Serial.println("Device::generateUid");
   uint8_t MAC_array[6];
   WiFi.macAddress(MAC_array);
 
@@ -36,14 +34,12 @@ void Device::generateUid(String prefix) {
 }
 
 void Device::generateGlobalTopics() {
-  Serial.println("Device::generateGlobalTopics");
   mqtt_topic_status = uid + "/status";
   mqtt_topic_setup = uid + "/setup";
   mqtt_topic_reboot = uid + "/reboot";
 }
 
 void Device::generateTopics(){
-  Serial.println("Device::generateTopics");
   mqtt_topic_sub = uid + "/pub";
   mqtt_topic_pub = uid + "/sub";
 }
@@ -58,7 +54,6 @@ void Device::update() {
 }
 
 void Device::updateState(ulong state_new) {
-  Serial.println("Device::updateState");
   state_old = (state_new > 0 && state_old > 0) ? 0 : state_old;
   state = state_new;
   digitalWrite(pin_action, (state == 0 ? LOW : HIGH));
@@ -69,7 +64,6 @@ void Device::updateState(ulong state_new) {
 }
 
 void Device::invertState() {
-  Serial.println("Device::invertState");
   if (state == 0) {
     if (state_old == 0) { state_old = 1; }
     updateState(state_old);
@@ -80,7 +74,6 @@ void Device::invertState() {
 }
 
 void Device::handlePayload(String topic, String payload) {
-  Serial.println("Device::handlePayload");
   if (topic == mqtt_topic_sub) {
     if (payload == "-1") {
       Serial.printf(" - value invert command recieved \n");
@@ -99,7 +92,6 @@ void Device::handlePayload(String topic, String payload) {
 }
 
 void Device::subscribe() {
-  Serial.println("Device::subscribe");
   if (!_mqttClient) return;
   if (_mqttClient->connected()) {
     _mqttClient->subscribe(mqtt_topic_sub.c_str());
@@ -109,7 +101,6 @@ void Device::subscribe() {
 }
 
 void Device::publishState(String topic, ulong statepayload, bool *ptr_state_published) {
-  Serial.println("Device::publishState");
   if (_mqttClient->connected()) {
     _mqttClient->publish(topic.c_str(), String(statepayload).c_str(), true);
 
@@ -138,7 +129,6 @@ bool Device::buttonPressed(byte pin, bool *laststate) {
 }
 
 void Device::loadState() {
-  Serial.println("Device::loadState");
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0) {
@@ -174,7 +164,6 @@ void Device::loadState() {
 }
 
 void Device::saveState() {
-  Serial.println("Device::saveState");
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0 || onboot == 1) return;

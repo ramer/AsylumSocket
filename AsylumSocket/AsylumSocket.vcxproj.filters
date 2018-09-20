@@ -45,6 +45,9 @@
     <ClInclude Include="src\Strip.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Motor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Socket.cpp">
@@ -63,6 +66,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Strip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Motor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

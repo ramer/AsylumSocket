@@ -8,14 +8,14 @@ Encoder::Encoder(byte event, byte action, byte eventA, byte eventB) : Device(eve
 };
 
 void Encoder::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
-
   pinMode(pin_eventA, INPUT);
   pinMode(pin_eventB, INPUT);
 
   encoderinstance = this;
   attachInterrupt(digitalPinToInterrupt(pin_eventA), EncoderInterruptFunc, CHANGE);
   attachInterrupt(digitalPinToInterrupt(pin_eventB), EncoderInterruptFunc, CHANGE);
+
+  Device::initialize(ptr_mqttClient, ptr_config, prefix);
 }
 
 void Encoder::doEncoder() {

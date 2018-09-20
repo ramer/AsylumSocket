@@ -1,50 +1,9 @@
 ﻿
 //void updateState(ulong state_new) {
-//  state_previous = (state_new > 0 && config.state > 0) ? 0 : config.state;
-//  config.state = state_new;
-//
-//  device.updateState(state_new);
-//
-//#if DEVICE_TYPE == 0 // Socket
-//#elif DEVICE_TYPE == 2 // Motor
-//  digitalWrite(PIN_ACTION_DIR, (config.state == 0 ? LOW : HIGH));
-//  digitalWrite(PIN_ACTION, HIGH);
-//  delay(INTERVAL_MOTOR);
-//  digitalWrite(PIN_ACTION, LOW);
 //#elif DEVICE_TYPE == 3 // Dimmer
 //  i2c_sendvalue(config.state);
-//#elif DEVICE_TYPE == 4 // Strip
-//  strip_updated = false;
-//#elif DEVICE_TYPE == 5 // Encoder
-//  encoderstate = config.state;
-//  if (config.state >= 250) { digitalWrite(PIN_ACTION, HIGH); }
-//  else if (config.state > 5 && config.state < 250) { analogWrite(PIN_ACTION, config.state << 2); }  // esp8266 uses 10 bit PWM
-//  else { digitalWrite(PIN_ACTION, LOW); }
-//#elif DEVICE_TYPE == 7 // Touch1
-//
-//#endif
-//  
-//  if (config.onboot == 2 || config.onboot == 3) { save_eeprom(); }
-//
-//
-//}
 
-//void invertState() {
-//  if (config.state == 0) {
-//
-//#if DEVICE_TYPE == 5 // Encoder
-//    if (state_previous < 5) { state_previous = 255; }
-//#else
-//    device.invertState();
-//    //if (state_previous == 0) { state_previous = 1; }
-//#endif
-//
-//    updateState(state_previous);
-//  }
-//  else {
-//    updateState(0);
-//  }
-//}
+
 
 void set_mode(int8_t mode_new) {
   if (mode == -1 && mode_new == -1) { mode_new = 0; Serial.printf("Unspecified mode! /n"); } //impossible
