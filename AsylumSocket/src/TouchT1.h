@@ -14,6 +14,10 @@ public:
 
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "TouchT1");
   void update();
+  void updateState2(ulong state_new);
+  void invertState2();
+  void updateState3(ulong state_new);
+  void invertState3();
   void handlePayload(String topic, String payload);
   void subscribe();
 

@@ -18,7 +18,9 @@ class Strip : public Device
 public:
   Strip(byte event, byte action);
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Strip");
+
   void update();
+  void updateState(ulong state_new);
 
   uint32_t strip_wheel(byte angle);
 

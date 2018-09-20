@@ -7,12 +7,14 @@ Strip::Strip(byte event, byte action) : Device(event, action) {};
 void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
   Device::initialize(ptr_mqttClient, ptr_config, prefix);
 
-  strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, pin_action, NEO_GRB + NEO_KHZ800); //rgb
+  strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, pin_action, NEO_GRB + NEO_KHZ800);
+  strip.begin();
+  strip.show();
 }
 
 void Strip::update() {
   // process buttons
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, &state_published, pin_action); saveState(); }
+  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(); saveState(); }
 
   // update state of strip
   update_strip();
@@ -20,6 +22,14 @@ void Strip::update() {
   // check state published
   if (!_mqttClient) return;
   if (_mqttClient->connected() && !state_published && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub, state, &state_published); }
+}
+
+void Strip::updateState(ulong state_new) {
+  state_old = (state_new > 0 && state_old > 0) ? 0 : state_old;
+  state = state_new;
+  state_published = false;
+
+  Serial.printf(" - state changed to %u \n", state_new);
 }
 
 void Strip::update_strip() {
@@ -88,7 +98,7 @@ void Strip::frame_sunrise() {
 
   if (sunrise >= 65535) {
     sunrise = 0;
-    updateState(16777215, &state, &state_old, &state_published, pin_action); saveState();
+    updateState(16777215); saveState();
   }
 
   strip.show();

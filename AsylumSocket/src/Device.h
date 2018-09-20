@@ -18,10 +18,12 @@ public:
   Device(byte event, byte action);
 
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Device");
+
   void update();
-  void updateState(ulong state_new, ulong *ptr_state = 0, ulong *ptr_state_old = 0, bool *ptr_state_published = 0, byte pin = 12); // 12 is default action value
-  void invertState(ulong *ptr_state = 0, ulong *ptr_state_old = 0, bool *ptr_state_published = 0, byte pin = 12);
+  void updateState(ulong state_new);
+  void invertState();
   void handlePayload(String topic, String payload);
+
   void subscribe();
   void publishState(String topic, ulong statepayload, bool *ptr_state_published);
 

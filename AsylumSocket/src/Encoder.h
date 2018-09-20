@@ -15,16 +15,15 @@ public:
   Encoder(byte event, byte action, byte eventA, byte eventB);
 
   void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Encoder");
-  void update();
-  void updateState(ulong state_new, ulong * ptr_state, ulong * ptr_state_old, bool * ptr_state_published, byte pin);
+
+  void updateState(ulong state_new);
+  void invertState();
 
   void doEncoder();
 
 protected:
   byte pin_eventA;
   byte pin_eventB;
-
-  int encoderstate;
 
   volatile byte seqA;
   volatile byte seqB;

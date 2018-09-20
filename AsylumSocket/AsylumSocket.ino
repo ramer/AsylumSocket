@@ -18,7 +18,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  4
+#define DEVICE_TYPE  7
 
 //    0 - Socket
 //    1 - reserved
@@ -33,6 +33,7 @@
 
 #define DEBUG						              true
 #define DEBUG_CORE					          false
+#define WIFI_POWER                    20.5
 #define PORT_DNS					            53
 #define PORT_HTTP					            80
 #define PIN_MODE			                0	  // inverted
@@ -73,7 +74,8 @@ Config          config;
   Socket device(0, 12);                 // event, action
 #elif DEVICE_TYPE == 4
   #include "src/Strip.h"
-Strip device(0, 12);
+  #define PIN_LED 12  // inverted
+Strip device(0, 13);
 #elif DEVICE_TYPE == 5
   #include "src/Encoder.h"
   Encoder device(0, 14, 12, 13);        // event, action, A12, B13
@@ -95,6 +97,10 @@ void setup() {
   Serial.printf("Chip started. \n");
 	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
 
+  Serial.printf("Setting WiFi power to %f ... ", WIFI_POWER);
+  WiFi.setOutputPower(WIFI_POWER);
+  Serial.printf("done \n");
+
 	Serial.printf("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
   pinMode(PIN_LED, OUTPUT);	  digitalWrite(PIN_LED, HIGH);	    // default initial value
@@ -112,7 +118,7 @@ void setup() {
 
   Serial.printf("Initializing device \n");
   device.initialize(&mqttClient, &config);
-  Serial.printf("Initialized %s \n", device.uid.c_str());
+  Serial.printf("Initialized: %s \n", device.uid.c_str());
 
   Serial.printf("Starting HTTP-server ... ");
   httpserver_setuphandlers();

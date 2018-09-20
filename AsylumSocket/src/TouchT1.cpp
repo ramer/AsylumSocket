@@ -10,25 +10,17 @@ TouchT1::TouchT1(byte event, byte action, byte event2, byte action2, byte event3
 };
 
 void TouchT1::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
-  // Device::initialize(ptr_mqttClient, ptr_config, prefix);     // fully overrided
-  _mqttClient = ptr_mqttClient;
-  _config = ptr_config;
+  Serial.println("TouchT1::initialize");
+  Device::initialize(ptr_mqttClient, ptr_config, prefix);
 
-  pinMode(pin_event, INPUT);
-  pinMode(pin_action, OUTPUT);	digitalWrite(pin_action, LOW);		// default initial value
   pinMode(pin_event2, INPUT);
   pinMode(pin_action2, OUTPUT);	digitalWrite(pin_action2, LOW);		// default initial value
   pinMode(pin_event3, INPUT);
   pinMode(pin_action3, OUTPUT);	digitalWrite(pin_action3, LOW);		// default initial value
-
-  generateUid(prefix);
-  generateGlobalTopics();
-  generateTopics();
-
-  loadState();
 }
 
 void TouchT1::generateTopics() {
+  Serial.println("TouchT1::generateTopics");
   mqtt_topic_sub = uid + "/pub";
   mqtt_topic_pub = uid + "/sub";
   mqtt_topic_sub2 = uid + "/pub2";
@@ -39,9 +31,9 @@ void TouchT1::generateTopics() {
 
 void TouchT1::update() {
   // process buttons
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(&state, &state_old, &state_published, pin_action); saveState(); }
-  if (buttonPressed(pin_event2, &pin_event_laststate2)) { invertState(&state2, &state_old2, &state_published2, pin_action2); saveState(); }
-  if (buttonPressed(pin_event3, &pin_event_laststate3)) { invertState(&state3, &state_old3, &state_published3, pin_action3); saveState(); }
+  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(); saveState(); }
+  if (buttonPressed(pin_event2, &pin_event_laststate2)) { invertState2(); saveState(); }
+  if (buttonPressed(pin_event3, &pin_event_laststate3)) { invertState3(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -50,19 +42,63 @@ void TouchT1::update() {
   if (_mqttClient->connected() && !state_published3 && millis() - state_publishedtime > INTERVAL_STATE_PUBLISH) { publishState(mqtt_topic_pub3, state3, &state_published3); }
 }
 
+void TouchT1::updateState2(ulong state_new) {
+  Serial.println("TouchT1::updateState2");
+  state_old2 = (state_new > 0 && state_old2 > 0) ? 0 : state_old2;
+  state2 = state_new;
+  digitalWrite(pin_action2, (state2 == 0 ? LOW : HIGH));
+  state_published2 = false;
+
+  Serial.printf(" - state2 changed to %u \n", state_new);
+  //updateStateCallback(state_new);
+}
+
+void TouchT1::invertState2() {
+  Serial.println("TouchT1::invertState2");
+  if (state2 == 0) {
+    if (state_old2 == 0) { state_old2 = 1; }
+    updateState2(state_old2);
+  }
+  else {
+    updateState2(0);
+  }
+}
+
+void TouchT1::updateState3(ulong state_new) {
+  Serial.println("TouchT1::updateState3");
+  state_old3 = (state_new > 0 && state_old3 > 0) ? 0 : state_old3;
+  state3 = state_new;
+  digitalWrite(pin_action3, (state3 == 0 ? LOW : HIGH));
+  state_published3 = false;
+
+  Serial.printf(" - state3 changed to %u \n", state_new);
+  //updateStateCallback(state_new);
+}
+
+void TouchT1::invertState3() {
+  Serial.println("TouchT1::invertState3");
+  if (state3 == 0) {
+    if (state_old3 == 0) { state_old3 = 1; }
+    updateState3(state_old3);
+  }
+  else {
+    updateState3(0);
+  }
+}
 void TouchT1::handlePayload(String topic, String payload) {
+  Serial.println("TouchT1::handlePayload");
   if (topic == mqtt_topic_sub) {
     if (payload == "-1") {
       Serial.printf(" - value invert command recieved \n");
 
-      invertState(&state, &state_old, &state_published, pin_action); saveState();
+      invertState(); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state, &state_old, &state_published, pin_action); saveState();
+      updateState(newvalue); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
     }
   }
@@ -70,14 +106,14 @@ void TouchT1::handlePayload(String topic, String payload) {
     if (payload == "-1") {
       Serial.printf(" - value2 invert command recieved \n");
 
-      invertState(&state2, &state_old2, &state_published2, pin_action2); saveState();
+      invertState2(); saveState();
       publishState(mqtt_topic_pub2, state2, &state_published2); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value2 recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state2, &state_old2, &state_published2, pin_action2); saveState();
+      updateState2(newvalue); saveState();
       publishState(mqtt_topic_pub2, state2, &state_published2); // force
     }
   }
@@ -85,20 +121,21 @@ void TouchT1::handlePayload(String topic, String payload) {
     if (payload == "-1") {
       Serial.printf(" - value3 invert command recieved \n");
 
-      invertState(&state3, &state_old3, &state_published3, pin_action3); saveState();
+      invertState3(); saveState();
       publishState(mqtt_topic_pub3, state3, &state_published3); // force
     }
     else {
       ulong newvalue = payload.toInt();
       Serial.printf(" - value3 recieved: %u \n", newvalue);
 
-      updateState(newvalue, &state3, &state_old3, &state_published3, pin_action3); saveState();
+      updateState3(newvalue); saveState();
       publishState(mqtt_topic_pub3, state3, &state_published3); // force
     }
   }
 }
 
 void TouchT1::subscribe() {
+  Serial.println("TouchT1::subscribe");
   if (!_mqttClient) return;
   if (_mqttClient->connected()) {
     _mqttClient->subscribe(mqtt_topic_sub.c_str());
@@ -110,51 +147,53 @@ void TouchT1::subscribe() {
 }
 
 void TouchT1::loadState() {
+  Serial.println("TouchT1::loadState");
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0) {
     // stay off
     Serial.printf(" - onboot: stay off \n");
-    updateState(0, &state, &state_old, &state_published, pin_action);
-    updateState(0, &state2, &state_old2, &state_published2, pin_action2);
-    updateState(0, &state3, &state_old3, &state_published3, pin_action3);
+    updateState(0);
+    updateState2(0);
+    updateState3(0);
   }
   else if (onboot == 1) {
     // turn on
     Serial.printf(" - onboot: turn on \n");
-    updateState(1, &state, &state_old, &state_published, pin_action);
-    updateState(1, &state2, &state_old2, &state_published2, pin_action2);
-    updateState(1, &state3, &state_old3, &state_published3, pin_action3);
+    updateState(1);
+    updateState2(1);
+    updateState3(1);
   }
   else if (onboot == 2) {
     // saved state
     std::map<String, String> states = _config->loadState();
     Serial.printf(" - onboot: last state: %u %u %u \n", states["state"].toInt(), states["state2"].toInt(), states["state3"].toInt());
-    updateState(states["state"].toInt(), &state, &state_old, &state_published, pin_action);
-    updateState(states["state2"].toInt(), &state2, &state_old2, &state_published2, pin_action2);
-    updateState(states["state3"].toInt(), &state3, &state_old3, &state_published3, pin_action3);
+    updateState(states["state"].toInt());
+    updateState2(states["state2"].toInt());
+    updateState3(states["state3"].toInt());
   }
   else if (onboot == 3) {
     // inverted saved state
     std::map<String, String> states = _config->loadState();
     if (states["on"].toInt() == 0) {
       Serial.printf(" - onboot: inverted state: %u %u %u \n", states["state"].toInt(), states["state2"].toInt(), states["state3"].toInt());
-      updateState(states["state"].toInt(), &state, &state_old, &state_published, pin_action);
-      updateState(states["state2"].toInt(), &state2, &state_old2, &state_published2, pin_action2);
-      updateState(states["state3"].toInt(), &state3, &state_old3, &state_published3, pin_action3);
+      updateState(states["state"].toInt());
+      updateState2(states["state2"].toInt());
+      updateState3(states["state3"].toInt());
       saveState();
     }
     else {
       Serial.printf(" - onboot: inverted state: 0 0 0\n");
-      updateState(0, &state, &state_old, &state_published, pin_action);
-      updateState(0, &state2, &state_old2, &state_published2, pin_action2);
-      updateState(0, &state3, &state_old3, &state_published3, pin_action3);
+      updateState(0);
+      updateState2(0);
+      updateState3(0);
       saveState();
     }
   }
 }
 
 void TouchT1::saveState() {
+  Serial.println("TouchT1::saveState");
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0 || onboot == 1) return;
