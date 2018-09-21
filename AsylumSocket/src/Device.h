@@ -45,7 +45,7 @@ protected:
   virtual void generateTopics();
   virtual void loadState();
   virtual void saveState();
-  bool buttonPressed(byte pin, bool * laststate);
+  virtual bool buttonPressed();
   //std::function<void(ulong)> updateStateCallback;
 
   PubSubClient * _mqttClient;

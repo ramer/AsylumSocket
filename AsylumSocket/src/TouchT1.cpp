@@ -29,9 +29,9 @@ void TouchT1::generateTopics() {
 
 void TouchT1::update() {
   // process buttons
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(); saveState(); }
-  if (buttonPressed(pin_event2, &pin_event_laststate2)) { invertState2(); saveState(); }
-  if (buttonPressed(pin_event3, &pin_event_laststate3)) { invertState3(); saveState(); }
+  if (buttonPressed()) { invertState(); saveState(); }
+  if (buttonPressed2()) { invertState2(); saveState(); }
+  if (buttonPressed3()) { invertState3(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -136,6 +136,36 @@ void TouchT1::subscribe() {
     _mqttClient->subscribe(mqtt_topic_setup.c_str());
     _mqttClient->subscribe(mqtt_topic_reboot.c_str());
   }
+}
+
+bool TouchT1::buttonPressed2() {
+  if (digitalRead(pin_event2) == LOW && pin_event_laststate2 == false && millis() - pin_event_time2 > INTERVAL_EVENT_DEBOUNCE)
+  {
+    pin_event_time2 = millis();
+    pin_event_laststate2 = true;
+    return true;
+  }
+  if (digitalRead(pin_event2) == HIGH && pin_event_laststate2 == true && millis() - pin_event_time2 > INTERVAL_EVENT_DEBOUNCE)
+  {
+    pin_event_time2 = millis();
+    pin_event_laststate2 = false;
+  }
+  return false;
+}
+
+bool TouchT1::buttonPressed3() {
+  if (digitalRead(pin_event3) == LOW && pin_event_laststate3 == false && millis() - pin_event_time3 > INTERVAL_EVENT_DEBOUNCE)
+  {
+    pin_event_time3 = millis();
+    pin_event_laststate3 = true;
+    return true;
+  }
+  if (digitalRead(pin_event3) == HIGH && pin_event_laststate3 == true && millis() - pin_event_time3 > INTERVAL_EVENT_DEBOUNCE)
+  {
+    pin_event_time3 = millis();
+    pin_event_laststate3 = false;
+  }
+  return false;
 }
 
 void TouchT1::loadState() {

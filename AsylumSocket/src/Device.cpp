@@ -46,7 +46,7 @@ void Device::generateTopics(){
 
 void Device::update() {
   // process buttons
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(); saveState(); }
+  if (buttonPressed()) { invertState(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -111,21 +111,19 @@ void Device::publishState(String topic, ulong statepayload, bool *ptr_state_publ
   }
 }
 
-bool Device::buttonPressed(byte pin, bool *laststate) {
-  bool pressed = false;
-  if (digitalRead(pin) == LOW && *laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
+bool Device::buttonPressed() {
+  if (digitalRead(pin_event) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
     pin_event_time = millis();
-    *laststate = true;
-
-    pressed = true;
+    pin_event_laststate = true;
+    return true;
   }
-  if (digitalRead(pin) == HIGH && *laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
+  if (digitalRead(pin_event) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
   {
     pin_event_time = millis();
-    *laststate = false;
+    pin_event_laststate = false;
   }
-  return pressed;
+  return false;
 }
 
 void Device::loadState() {

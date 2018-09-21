@@ -4,7 +4,6 @@
 //  i2c_sendvalue(config.state);
 
 
-
 void set_mode(int8_t mode_new) {
   if (mode == -1 && mode_new == -1) { mode_new = 0; Serial.printf("Unspecified mode! /n"); } //impossible
   

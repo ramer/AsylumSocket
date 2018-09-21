@@ -3,7 +3,7 @@ extern "C" uint32_t _SPIFFS_start;
 extern "C" uint32_t _SPIFFS_end;
 
 void httpserver_setuphandlers() {
-  httpServer.serveStatic("/", SPIFFS, "/www/"); // .setDefaultFile("setup.html"); // .setAuthentication(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str());
+  //httpServer.serveStatic("/", SPIFFS, "/www/"); // .setDefaultFile("setup.html"); // .setAuthentication(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str());
 
   httpServer.on("/setup", HTTP_GET, handleSetup);
   httpServer.on("/style.css", HTTP_GET, handleStyle);
@@ -16,14 +16,17 @@ void httpserver_setuphandlers() {
 }
 
 void handleSetup(AsyncWebServerRequest *request) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   request->send_P(200, "text/html", setup_html);
 }
 
 void handleStyle(AsyncWebServerRequest *request) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   request->send_P(200, "text/css", style_html);
 }
 
 void handleSubmit(AsyncWebServerRequest *request) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   for (auto &itemDefault : config.def_conf) {
     if (!request->hasParam(itemDefault.first, true)) {
       Serial.printf("API configuration does not have (%s) key, use default value (%s) \n", itemDefault.first.c_str(), itemDefault.second.c_str());
@@ -41,6 +44,7 @@ void handleSubmit(AsyncWebServerRequest *request) {
 }
 
 void handleApiConfig(AsyncWebServerRequest *request) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   AsyncResponseStream *response = request->beginResponseStream("application/json");
   DynamicJsonBuffer  jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
@@ -82,10 +86,12 @@ void handleApiConfig(AsyncWebServerRequest *request) {
 }
 
 void handleUpload(AsyncWebServerRequest *request) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   request->send_P(200, "text/html", upload_html);
 }
 
 void handleUpdate(AsyncWebServerRequest *request) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   bool update_spiffs = false;
 
   if (request->hasParam("spiffs", true)) {
@@ -97,6 +103,7 @@ void handleUpdate(AsyncWebServerRequest *request) {
 }
 
 void handleFileUpload(AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
+  if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   bool update_spiffs = false;
 
   if (request->hasParam("spiffs", true)) {

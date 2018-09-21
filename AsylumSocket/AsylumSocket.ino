@@ -7,6 +7,7 @@
 //ESP8266
 //Flash size: 1M (64K SPIFFS)
 
+#include "Mode.h"
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
@@ -18,7 +19,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  5
+#define DEVICE_TYPE  7
 
 //    0 - Socket
 //    1 - reserved
@@ -42,7 +43,7 @@
 #define INTERVAL_MODE_TIMEOUT         600000
 #define INTERVAL_CONNECTION_WIFI	    5000
 #define INTERVAL_CONNECTION_MQTT	    5000
-
+#define ATTEMPTS_CONNECTION_WIFI      120
 
 //DECLARATIONS
 
@@ -60,6 +61,7 @@ ulong time_led = 0;
 
 ulong	time_connection_wifi = 0;
 ulong	time_connection_mqtt = 0;
+byte attempts_connection_wifi = 0;
 
 DNSServer				dnsServer;
 WiFiClient			wifiClient;
@@ -185,17 +187,22 @@ void loop() {
 
 			if (millis() - time_connection_wifi > INTERVAL_CONNECTION_WIFI) {
 				time_connection_wifi = millis();
+        attempts_connection_wifi++;
+        if (attempts_connection_wifi >= 100) { set_mode(1); return; }
 
         if (config.cur_conf["apssid"].length() != 0) {
-          Serial.printf("Connecting to access point: %s , password: %s \n", config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str());
+          Serial.printf("Connecting to access point: %s , password: %s , attempt: %u \n", config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str(), attempts_connection_wifi);
           WiFi.begin(config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str());
         } else {
           Serial.printf("Connecting to access point error: no SSID specified \n");
+          set_mode(1); return;
         }
 			}
 		}
 		else
 		{
+      attempts_connection_wifi = 0;
+
 			if (!mqttClient.loop()) {
 
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {

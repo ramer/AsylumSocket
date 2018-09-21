@@ -21,6 +21,10 @@ public:
   void handlePayload(String topic, String payload);
   void subscribe();
 
+  bool buttonPressed2();
+
+  bool buttonPressed3();
+
   ulong state2;
   ulong state_old2;
   ulong state3;
@@ -44,7 +48,10 @@ protected:
   byte pin_event3;
   byte pin_action3;
   bool pin_event_laststate2 = false;
+  ulong pin_event_time2 = 0;
   bool pin_event_laststate3 = false;
+  ulong pin_event_time3 = 0;
+
 };
 
 #endif

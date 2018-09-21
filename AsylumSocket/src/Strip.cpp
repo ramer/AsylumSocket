@@ -23,7 +23,7 @@ void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String 
 
 void Strip::update() {
   // process buttons
-  if (buttonPressed(pin_event, &pin_event_laststate)) { invertState(); saveState(); }
+  if (buttonPressed()) { invertState(); saveState(); }
 
   // update state of strip
   update_strip();
