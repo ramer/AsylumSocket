@@ -111,7 +111,6 @@ typedef long __PTRDIFF_TYPE__;
 #define noInterrupts() cli()
 
 #include "AsylumSocket.ino"
-#include "eeprom.ino"
 #include "html.ino"
 #include "http.ino"
 #include "mqtt.ino"

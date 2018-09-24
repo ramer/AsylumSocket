@@ -21,7 +21,6 @@
     <None Include="AsylumSocket.ino" />
     <None Include="mqtt.ino" />
     <None Include="html.ino" />
-    <None Include="eeprom.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.AsylumSocket.vsarduino.h">
@@ -48,9 +47,6 @@
     <ClInclude Include="src\Motor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Mode.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Socket.cpp">
@@ -72,9 +68,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Motor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Mode.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

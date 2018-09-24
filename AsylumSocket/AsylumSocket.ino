@@ -7,7 +7,6 @@
 //ESP8266
 //Flash size: 1M (64K SPIFFS)
 
-#include "Mode.h"
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>

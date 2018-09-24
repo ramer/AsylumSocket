@@ -110,9 +110,6 @@
     <None Include="AsylumSocket.ino">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="eeprom.ino">
-      <FileType>CppCode</FileType>
-    </None>
     <None Include="html.ino">
       <FileType>HTML</FileType>
     </None>
@@ -130,7 +127,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Mode.h" />
     <ClInclude Include="src\Motor.h" />
     <ClInclude Include="src\Encoder.h" />
     <ClInclude Include="src\Config.h" />
@@ -141,7 +137,6 @@
     <ClInclude Include="__vm\.AsylumSocket.vsarduino.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Mode.cpp" />
     <ClCompile Include="src\Motor.cpp" />
     <ClCompile Include="src\Encoder.cpp" />
     <ClCompile Include="src\Config.cpp" />
