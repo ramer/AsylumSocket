@@ -23,5 +23,5 @@ void Motor::updateState(ulong state_new) {
   delay(INTERVAL_MOTOR);
   digitalWrite(pin_action2, LOW);
 
-  Serial.printf(" - state changed to %u \n", state_new);
+  debug(" - state changed to %u \n", state_new);
 }

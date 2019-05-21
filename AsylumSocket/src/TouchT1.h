@@ -21,10 +21,6 @@ public:
   void handlePayload(String topic, String payload);
   void subscribe();
 
-  bool buttonPressed2();
-
-  bool buttonPressed3();
-
   ulong state2;
   ulong state_old2;
   ulong state3;

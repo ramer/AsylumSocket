@@ -5,7 +5,7 @@
 
 
 void set_mode(int8_t mode_new) {
-  if (mode == -1 && mode_new == -1) { mode_new = 0; Serial.printf("Unspecified mode! /n"); } //impossible
+  if (mode == -1 && mode_new == -1) { mode_new = 0; debug("Unspecified mode! /n"); } //impossible
   
   if (mode == 0) { deinitializeRegularMode(); }
   if (mode == 1) { deinitializeSmartConfigMode(); }
@@ -38,16 +38,16 @@ void i2c_sendvalue(uint16_t value) {
   switch (Wire.endTransmission())
   {
   case 0:
-    Serial.printf(" - i2c sent (%u)", value);
+    debug(" - i2c sent (%u)", value);
     break;
   case 2:
-    Serial.printf(" - i2c send (%u) error: address NAK, no slave answered", value);
+    debug(" - i2c send (%u) error: address NAK, no slave answered", value);
     break;
   case 3:
-    Serial.printf(" - i2c send (%u) error: data NAK, slave returned NAK, did not acknowledge reception of a byte", value);
+    debug(" - i2c send (%u) error: data NAK, slave returned NAK, did not acknowledge reception of a byte", value);
     break;
   default:
-    Serial.printf(" - i2c send (%u) unknown error", value);
+    debug(" - i2c send (%u) unknown error", value);
     break;
   }
 }
@@ -56,7 +56,7 @@ void i2c_sendvalue(uint16_t value) {
 void check_newupdate() {
   if (has_new_update) {
     has_new_update = false;
-    Serial.printf("\n\nChip restarting.\n\n");
+    debug("\n\nChip restarting.\n\n");
     delay(1000);
     ESP.restart();
   }
@@ -82,12 +82,12 @@ void check_mode() {
   if (laststate_mode == true && millis() - time_mode > INTERVAL_SETUP)
   {
     time_mode = millis();
-    Serial.printf("Mode button pressed for %u ms \n", INTERVAL_SETUP);
+    debug("Mode button pressed for %u ms \n", INTERVAL_SETUP);
 
     set_mode(-1); // next
   }
   if (mode != 0 && millis() - time_mode_set > INTERVAL_MODE_TIMEOUT) { 
-    Serial.printf("Setup timeout (%u ms) \n", INTERVAL_MODE_TIMEOUT);
+    debug("Setup timeout (%u ms) \n", INTERVAL_MODE_TIMEOUT);
 
     set_mode(0);
   }
@@ -138,7 +138,7 @@ void reboot() {
   if (mode == 1) { deinitializeSmartConfigMode(); }
   if (mode == 2) { deinitializeSetupMode(); }
   
-	Serial.printf("\n\nChip restarted.\n\n");
+	debug("\n\nChip restarted.\n\n");
   
   delay(3000);
 

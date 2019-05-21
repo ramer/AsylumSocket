@@ -18,7 +18,7 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  7
+#define DEVICE_TYPE  8
 
 //    0 - Socket
 //    1 - reserved
@@ -28,6 +28,7 @@
 //    5 - Encoder
 //    6 - Remote2
 //    7 - Touch-T1
+//    8 - AnalogSensor
 
 // DEFINES
 
@@ -44,13 +45,14 @@
 #define INTERVAL_CONNECTION_MQTT	    5000
 #define ATTEMPTS_CONNECTION_WIFI      120
 
-//DECLARATIONS
+// DECLARATIONS
 
 int8_t mode = -1; // 0 - regular , 1 - smart config , 2 - setup
 
 bool laststate_mode = false;
 bool laststate_led = false;
 
+bool is_updating = false;
 bool has_new_update = false;
 bool has_new_config = false;
 
@@ -86,6 +88,11 @@ Config          config;
 #elif DEVICE_TYPE == 7                  // IMPORTANT: use Generic ESP8285 Module
   #include "src/TouchT1.h"
   TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3
+#elif DEVICE_TYPE == 8                  // IMPORTANT: use Amperka WiFi Slot
+  #include "src/AnalogSensor.h"
+  #define PIN_MODE	A5	                // inverted
+  #define PIN_LED   A2                  // inverted
+  AnalogSensor device(A6, A2);          // sensor, action
 #else
   #include "src/Device.h"
   Device device(0, 12);                 // event, action,
@@ -97,37 +104,37 @@ void setup() {
   Serial.setDebugOutput(DEBUG_CORE);
 #endif
   
-  Serial.printf("\n\n\n");
-  Serial.printf("Chip started. \n");
-	Serial.printf("Sketch size: %u \n", ESP.getSketchSize());
+  debug("\n\n\n");
+  debug("Chip started. \n");
+	debug("Sketch size: %u \n", ESP.getSketchSize());
 
-  Serial.printf("Setting WiFi power to %f ... ", WIFI_POWER);
+  debug("Setting WiFi power to %f ... ", WIFI_POWER);
   WiFi.setOutputPower(WIFI_POWER);
-  Serial.printf("done \n");
+  debug("done \n");
 
-	Serial.printf("Configuring pins ... ");
+	debug("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
   pinMode(PIN_LED, OUTPUT);	  digitalWrite(PIN_LED, HIGH);	    // default initial value
-  Serial.printf("done \n");
+  debug("done \n");
   
-  Serial.printf("Mounting SPIFFS ... ");
+  debug("Mounting SPIFFS ... ");
   if (SPIFFS.begin()) {
-    Serial.printf("success \n");
+    debug("success \n");
   }
   else {
-    Serial.printf("error \n");
+    debug("error \n");
   }
 
   bool configured = config.loadConfig();
 
-  Serial.printf("Initializing device \n");
+  debug("Initializing device \n");
   device.initialize(&mqttClient, &config);
-  Serial.printf("Initialized: %s \n", device.uid.c_str());
+  debug("Initialized: %s \n", device.uid.c_str());
 
-  Serial.printf("Starting HTTP-server ... ");
+  debug("Starting HTTP-server ... ");
   httpserver_setuphandlers();
   httpServer.begin();
-  Serial.printf("started \n");
+  debug("started \n");
 
   if (configured) {
     set_mode(0);
@@ -138,18 +145,21 @@ void setup() {
 }
 
 void loop() {
-	
+
+  // DO NOT DO ANYTHING WHILE UPDATING
+  if (is_updating) return;
+
   if (mode == 1) {
     // LOOP IN SMART CONFIG MODE
 
     if (WiFi.smartConfigDone()) {
 
-      Serial.printf("Connecting to access point: %s , password: %s ... ", WiFi.SSID().c_str(), WiFi.psk().c_str());
+      debug("Connecting to access point: %s , password: %s ... ", WiFi.SSID().c_str(), WiFi.psk().c_str());
 
       switch (WiFi.waitForConnectResult())
       {
       case WL_CONNECTED:
-        Serial.printf("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
+        debug("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
 
         config.cur_conf["apssid"] = WiFi.SSID();
         config.cur_conf["apkey"] = WiFi.psk();
@@ -158,16 +168,16 @@ void loop() {
         mode = 2; // crutch
         break;
       case WL_NO_SSID_AVAIL:
-        Serial.printf("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
+        debug("AP cannot be reached, SSID: %s \n", WiFi.SSID().c_str());
         break;
       case WL_CONNECT_FAILED:
-        Serial.printf("incorrect password \n");
+        debug("incorrect password \n");
         break;
       case WL_IDLE_STATUS:
-        Serial.printf("Wi-Fi is idle \n");
+        debug("Wi-Fi is idle \n");
         break;
       default:
-        Serial.printf("module is not configured in station mode \n");
+        debug("module is not configured in station mode \n");
         break;
       }
 
@@ -190,10 +200,10 @@ void loop() {
         if (attempts_connection_wifi >= 100) { set_mode(1); return; }
 
         if (config.cur_conf["apssid"].length() != 0) {
-          Serial.printf("Connecting to access point: %s , password: %s , attempt: %u \n", config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str(), attempts_connection_wifi);
+          debug("Connecting to access point: %s , password: %s , attempt: %u \n", config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str(), attempts_connection_wifi);
           WiFi.begin(config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str());
         } else {
-          Serial.printf("Connecting to access point error: no SSID specified \n");
+          debug("Connecting to access point error: no SSID specified \n");
           set_mode(1); return;
         }
 			}
@@ -207,17 +217,17 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					Serial.printf("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.cur_conf["mqttserver"].c_str(), device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str());
+					debug("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.cur_conf["mqttserver"].c_str(), device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str());
 
 					if (mqttClient.connect(device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str())) {
-						Serial.printf("connected, state = %i \n", mqttClient.state());
+						debug("connected, state = %i \n", mqttClient.state());
 						
             device.subscribe();
             mqtt_sendstatus();
 					}
 					else 
 					{
-						Serial.printf ("failed, state = %i \n", mqttClient.state());
+						debug ("failed, state = %i \n", mqttClient.state());
 					}
 				}
 			}
@@ -226,10 +236,10 @@ void loop() {
 
 	// LOOP ANYWAY
 
-  device.update();
   check_newupdate();
   check_newconfig();
   check_mode();
+  device.update();
   blynk();
 
 } // loop
@@ -286,9 +296,9 @@ void loop() {
 //  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
 //  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
 //#elif DEVICE_TYPE == 3 // Dimmer
-//  Serial.printf("Joining I2C bus ... ");
+//  debug("Joining I2C bus ... ");
 //  Wire.begin(0, 2);        // join i2c bus (address optional for master)
-//  Serial.printf("done \n");
+//  debug("done \n");
 //#elif DEVICE_TYPE == 4 // Strip
 //  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
 //  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value

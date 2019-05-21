@@ -7,7 +7,7 @@
 #include <PubSubClient.h>
 #include "Device.h"
 
-#define ENCODER_STEP  5
+#define ENCODER_STEP  1
 
 class Encoder : public Device
 {

@@ -35,7 +35,7 @@ void Encoder::doEncoder() {
   seqA &= 0b00001111;
   seqB &= 0b00001111;
   
-  // Serial.printf("%s %s \n", a ? "| " : " |", b ? "| " : " |");
+  // debug("%s %s \n", a ? "| " : " |", b ? "| " : " |");
   int new_state = state;
   if (seqA == 0b00000011 && seqB == 0b00001001) new_state += ENCODER_STEP; // CW
   //if (seqA == 0b00001011 && seqB == 0b00001001) encoderstate += ENCODER_STEP;
@@ -53,7 +53,7 @@ void Encoder::updateState(ulong state_new) {
   else if (state_new > 15 && state_new < 250) { analogWrite(pin_action, state_new << 2); }  // esp8266 uses 10 bit PWM
   else { digitalWrite(pin_action, LOW); }
   
-  //Serial.printf(" - state changed to %u \n", state_new);
+  //debug(" - state changed to %u \n", state_new);
 }
 
 void Encoder::invertState() {

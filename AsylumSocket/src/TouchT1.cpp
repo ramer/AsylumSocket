@@ -29,9 +29,9 @@ void TouchT1::generateTopics() {
 
 void TouchT1::update() {
   // process buttons
-  if (buttonPressed()) { invertState(); saveState(); }
-  if (buttonPressed2()) { invertState2(); saveState(); }
-  if (buttonPressed3()) { invertState3(); saveState(); }
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { invertState(); saveState(); }
+  if (buttonState(pin_event2, &pin_event_laststate2, &pin_event_time2) == DOWN) { invertState2(); saveState(); }
+  if (buttonState(pin_event3, &pin_event_laststate3, &pin_event_time3) == DOWN) { invertState3(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -46,7 +46,7 @@ void TouchT1::updateState2(ulong state_new) {
   digitalWrite(pin_action2, (state_new == 0 ? LOW : HIGH));
   state_published2 = false;
 
-  Serial.printf(" - state2 changed to %u \n", state_new);
+  debug(" - state2 changed to %u \n", state_new);
   //updateStateCallback(state_new);
 }
 
@@ -66,7 +66,7 @@ void TouchT1::updateState3(ulong state_new) {
   digitalWrite(pin_action3, (state_new == 0 ? LOW : HIGH));
   state_published3 = false;
 
-  Serial.printf(" - state3 changed to %u \n", state_new);
+  debug(" - state3 changed to %u \n", state_new);
   //updateStateCallback(state_new);
 }
 
@@ -82,14 +82,14 @@ void TouchT1::invertState3() {
 void TouchT1::handlePayload(String topic, String payload) {
   if (topic == mqtt_topic_sub) {
     if (payload == "-1") {
-      Serial.printf(" - value invert command recieved \n");
+      debug(" - value invert command recieved \n");
 
       invertState(); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
     }
     else {
       ulong newvalue = payload.toInt();
-      Serial.printf(" - value recieved: %u \n", newvalue);
+      debug(" - value recieved: %u \n", newvalue);
 
       updateState(newvalue); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
@@ -97,14 +97,14 @@ void TouchT1::handlePayload(String topic, String payload) {
   }
   if (topic == mqtt_topic_sub2) {
     if (payload == "-1") {
-      Serial.printf(" - value2 invert command recieved \n");
+      debug(" - value2 invert command recieved \n");
 
       invertState2(); saveState();
       publishState(mqtt_topic_pub2, state2, &state_published2); // force
     }
     else {
       ulong newvalue = payload.toInt();
-      Serial.printf(" - value2 recieved: %u \n", newvalue);
+      debug(" - value2 recieved: %u \n", newvalue);
 
       updateState2(newvalue); saveState();
       publishState(mqtt_topic_pub2, state2, &state_published2); // force
@@ -112,14 +112,14 @@ void TouchT1::handlePayload(String topic, String payload) {
   }
   if (topic == mqtt_topic_sub3) {
     if (payload == "-1") {
-      Serial.printf(" - value3 invert command recieved \n");
+      debug(" - value3 invert command recieved \n");
 
       invertState3(); saveState();
       publishState(mqtt_topic_pub3, state3, &state_published3); // force
     }
     else {
       ulong newvalue = payload.toInt();
-      Serial.printf(" - value3 recieved: %u \n", newvalue);
+      debug(" - value3 recieved: %u \n", newvalue);
 
       updateState3(newvalue); saveState();
       publishState(mqtt_topic_pub3, state3, &state_published3); // force
@@ -138,49 +138,19 @@ void TouchT1::subscribe() {
   }
 }
 
-bool TouchT1::buttonPressed2() {
-  if (digitalRead(pin_event2) == LOW && pin_event_laststate2 == false && millis() - pin_event_time2 > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time2 = millis();
-    pin_event_laststate2 = true;
-    return true;
-  }
-  if (digitalRead(pin_event2) == HIGH && pin_event_laststate2 == true && millis() - pin_event_time2 > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time2 = millis();
-    pin_event_laststate2 = false;
-  }
-  return false;
-}
-
-bool TouchT1::buttonPressed3() {
-  if (digitalRead(pin_event3) == LOW && pin_event_laststate3 == false && millis() - pin_event_time3 > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time3 = millis();
-    pin_event_laststate3 = true;
-    return true;
-  }
-  if (digitalRead(pin_event3) == HIGH && pin_event_laststate3 == true && millis() - pin_event_time3 > INTERVAL_EVENT_DEBOUNCE)
-  {
-    pin_event_time3 = millis();
-    pin_event_laststate3 = false;
-  }
-  return false;
-}
-
 void TouchT1::loadState() {
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0) {
     // stay off
-    Serial.printf(" - onboot: stay off \n");
+    debug(" - onboot: stay off \n");
     updateState(0);
     updateState2(0);
     updateState3(0);
   }
   else if (onboot == 1) {
     // turn on
-    Serial.printf(" - onboot: turn on \n");
+    debug(" - onboot: turn on \n");
     updateState(1);
     updateState2(1);
     updateState3(1);
@@ -188,7 +158,7 @@ void TouchT1::loadState() {
   else if (onboot == 2) {
     // saved state
     std::map<String, String> states = _config->loadState();
-    Serial.printf(" - onboot: last state: %u %u %u \n", states["state"].toInt(), states["state2"].toInt(), states["state3"].toInt());
+    debug(" - onboot: last state: %u %u %u \n", states["state"].toInt(), states["state2"].toInt(), states["state3"].toInt());
     updateState(states["state"].toInt());
     updateState2(states["state2"].toInt());
     updateState3(states["state3"].toInt());
@@ -197,14 +167,14 @@ void TouchT1::loadState() {
     // inverted saved state
     std::map<String, String> states = _config->loadState();
     if (states["on"].toInt() == 0) {
-      Serial.printf(" - onboot: inverted state: %u %u %u \n", states["state"].toInt(), states["state2"].toInt(), states["state3"].toInt());
+      debug(" - onboot: inverted state: %u %u %u \n", states["state"].toInt(), states["state2"].toInt(), states["state3"].toInt());
       updateState(states["state"].toInt());
       updateState2(states["state2"].toInt());
       updateState3(states["state3"].toInt());
       saveState();
     }
     else {
-      Serial.printf(" - onboot: inverted state: 0 0 0\n");
+      debug(" - onboot: inverted state: 0 0 0\n");
       updateState(0);
       updateState2(0);
       updateState3(0);

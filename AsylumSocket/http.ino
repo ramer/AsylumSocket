@@ -29,7 +29,7 @@ void handleSubmit(AsyncWebServerRequest *request) {
   if (!(!config.cur_conf["locallogin"].length() || !config.cur_conf["localpassword"].length() || request->authenticate(config.cur_conf["locallogin"].c_str(), config.cur_conf["localpassword"].c_str()))) return request->requestAuthentication();
   for (auto &itemDefault : config.def_conf) {
     if (!request->hasParam(itemDefault.first, true)) {
-      Serial.printf("API configuration does not have (%s) key, use default value (%s) \n", itemDefault.first.c_str(), itemDefault.second.c_str());
+      debug("API configuration does not have (%s) key, use default value (%s) \n", itemDefault.first.c_str(), itemDefault.second.c_str());
       config.cur_conf[itemDefault.first] = itemDefault.second;
     }
     else {
@@ -57,6 +57,7 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   JsonArray& networks = root.createNestedArray("networks");
 
   int n = WiFi.scanComplete();
+  int t = 0;
   if (n > 0) {
     int8_t lastmax = 0;
 
@@ -74,15 +75,18 @@ void handleApiConfig(AsyncWebServerRequest *request) {
           JsonObject& network = networks.createNestedObject();
           network["ssid"] = WiFi.SSID(i);
           network["name"] = (WiFi.encryptionType(i) == ENC_TYPE_NONE ? "🔓 " : "🔒 ") + get_quality(WiFi.RSSI(i)) + " &emsp; " + WiFi.SSID(i) + " &emsp; " + (WiFi.isHidden(i) ? "👁" : " ");
+          t++; if (t >= 10) goto print;
         }
       }
     }
   }
+  
+print:
 
   root.printTo(*response);
   request->send(response);
 
-  Serial.printf("HTTP-Server: config requested \n");
+  debug("HTTP-Server: config requested \n");
 }
 
 void handleUpload(AsyncWebServerRequest *request) {
@@ -111,25 +115,26 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
   }
 
   if (index == 0) {
-    Serial.printf("Upload started: %s \n", filename.c_str());
+    debug("Upload started: %s \n", filename.c_str());
     Update.runAsync(true);
+    is_updating = true;
 
     if (update_spiffs) {
       size_t spiffsSize = ((size_t)&_SPIFFS_end - (size_t)&_SPIFFS_start);
       if (Update.begin(spiffsSize, U_SPIFFS)) {
-        Serial.printf("Updating SPIFFS ... ");
+        debug("Updating SPIFFS ... ");
       }
       else {
-        Serial.printf("Update SPIFFS begin failure: ");
+        debug("Update SPIFFS begin failure: ");
         Update.printError(Serial);
       }
     } else {
       uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
       if (Update.begin(maxSketchSpace)) {
-        Serial.printf("Updating firmware ... ");
+        debug("Updating firmware ... ");
       }
       else {
-        Serial.printf("Update firmware begin failure: ");
+        debug("Update firmware begin failure: ");
         Update.printError(Serial);
       }
     }
@@ -137,25 +142,28 @@ void handleFileUpload(AsyncWebServerRequest *request, const String& filename, si
   
   if (!Update.hasError()) {
     if (Update.write(data, len) != len) {
-      Serial.printf("write error: ");
+      debug("write error: ");
       Update.printError(Serial);
-      Serial.printf(" \n");
+      debug(" \n");
     }
+  } else {
+    is_updating = false;
   }
 
   if (final) {
     if (Update.end(true)) {
-      Serial.printf("done. \n");
+      debug("done. \n");
     }
     else {
-      Serial.printf("Update end failure: ");
+      debug("Update end failure: ");
       Update.printError(Serial);
     }
+    is_updating = false;
   }
 }
 
 void handleRedirect(AsyncWebServerRequest *request) {
-  Serial.printf("HTTP-Server: request redirected from: %s \n", request->url().c_str());
+  debug("HTTP-Server: request redirected from: %s \n", request->url().c_str());
   AsyncWebServerResponse *response = request->beginResponse(302, "text/plain", "");
   response->addHeader("Location", String("http://") + (WiFi.getMode() == WIFI_AP ? WiFi.softAPIP().toString() : WiFi.localIP().toString()) + String("/setup"));
   request->send(response);

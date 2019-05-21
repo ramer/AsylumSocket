@@ -7,10 +7,13 @@
 #include <PubSubClient.h>
 #include "Config.h"
 
-#define INTERVAL_EVENT_DEBOUNCE	      100
+#define INTERVAL_BUTTON_DEBOUNCE	    100
+#define INTERVAL_BUTTON_IDLE	        200
 #define INTERVAL_LED_SETUP	          500
 #define INTERVAL_LED_SMARTCONFIG      250
 #define INTERVAL_STATE_PUBLISH		    200
+
+enum buttonstates { RELEASED = 0, DOWN = 1, DOWNIDLE = 2, PRESSED = 4, UP = 8, UPIDLE = 16 };
 
 class Device
 {
@@ -45,7 +48,9 @@ protected:
   virtual void generateTopics();
   virtual void loadState();
   virtual void saveState();
-  virtual bool buttonPressed();
+  //virtual bool buttonPressed();
+  virtual buttonstates buttonState(byte pin, bool * ptr_pin_event_laststate = 0, ulong * ptr_pin_event_time = 0);
+
   //std::function<void(ulong)> updateStateCallback;
 
   PubSubClient * _mqttClient;

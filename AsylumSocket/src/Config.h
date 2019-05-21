@@ -5,6 +5,8 @@
 #ifndef _CONFIG_h
 #define _CONFIG_h
 
+#define debug(format, ...) Serial.printf_P((PGM_P)F(format), ## __VA_ARGS__)
+
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
 #include <FS.h>
@@ -27,9 +29,9 @@ public:
   std::map<String, String> def_conf;
 
   bool loadConfig();
-  bool loadConfig(bool eeprom);
+  //bool loadConfig(bool eeprom);
   void saveConfig();
-  void saveConfig(bool eeprom);
+  //void saveConfig(bool eeprom);
   std::map<String, String> loadState();
   void saveState(JsonObject &root);
 

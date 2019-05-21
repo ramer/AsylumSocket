@@ -23,7 +23,7 @@ void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String 
 
 void Strip::update() {
   // process buttons
-  if (buttonPressed()) { invertState(); saveState(); }
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { invertState(); saveState(); }
 
   // update state of strip
   update_strip();
@@ -38,7 +38,7 @@ void Strip::updateState(ulong state_new) {
   state = state_new;
   state_published = false;
 
-  Serial.printf(" - state changed to %u \n", state_new);
+  debug(" - state changed to %u \n", state_new);
 }
 
 void Strip::update_strip() {

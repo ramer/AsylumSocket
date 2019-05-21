@@ -46,7 +46,7 @@ void Device::generateTopics(){
 
 void Device::update() {
   // process buttons
-  if (buttonPressed()) { invertState(); saveState(); }
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { invertState(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -59,7 +59,7 @@ void Device::updateState(ulong state_new) {
   digitalWrite(pin_action, (state == 0 ? LOW : HIGH));
   state_published = false;
 
-  Serial.printf(" - state changed to %u \n", state_new);
+  debug(" - state changed to %u \n", state_new);
   //updateStateCallback(state_new);
 }
 
@@ -76,14 +76,14 @@ void Device::invertState() {
 void Device::handlePayload(String topic, String payload) {
   if (topic == mqtt_topic_sub) {
     if (payload == "-1") {
-      Serial.printf(" - value invert command recieved \n");
+      debug(" - value invert command recieved \n");
 
       invertState(); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
     }
     else {
       ulong newvalue = payload.toInt();
-      Serial.printf(" - value recieved: %u \n", newvalue);
+      debug(" - value recieved: %u \n", newvalue);
 
       updateState(newvalue); saveState();
       publishState(mqtt_topic_pub, state, &state_published); // force
@@ -104,57 +104,82 @@ void Device::publishState(String topic, ulong statepayload, bool *ptr_state_publ
   if (_mqttClient->connected()) {
     _mqttClient->publish(topic.c_str(), String(statepayload).c_str(), true);
 
-    Serial.printf(" - message sent [%s] %s \n", topic.c_str(), String(statepayload).c_str());
+    debug(" - message sent [%s] %s \n", topic.c_str(), String(statepayload).c_str());
 
     *ptr_state_published = true;
     state_publishedtime = millis();
   }
 }
 
-bool Device::buttonPressed() {
-  if (digitalRead(pin_event) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
+buttonstates Device::buttonState(byte pin, bool * ptr_pin_laststate, ulong * ptr_pin_time) {
+  if (ptr_pin_laststate == 0 || ptr_pin_time == 0) return RELEASED;
+
+  bool pinval = !digitalRead(pin);  // inverted
+  ulong pintimedelta = millis() - *ptr_pin_time;
+
+  if (pinval & !*ptr_pin_laststate && pintimedelta > INTERVAL_BUTTON_DEBOUNCE)
   {
-    pin_event_time = millis();
-    pin_event_laststate = true;
-    return true;
+    *ptr_pin_time = millis(); *ptr_pin_laststate = true; return DOWN;
   }
-  if (digitalRead(pin_event) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
+
+  if (pinval & *ptr_pin_laststate)
+    return pintimedelta > INTERVAL_BUTTON_IDLE ? PRESSED : DOWNIDLE;
+
+  if (!pinval & *ptr_pin_laststate && pintimedelta > INTERVAL_BUTTON_DEBOUNCE)
   {
-    pin_event_time = millis();
-    pin_event_laststate = false;
+    *ptr_pin_time = millis(); *ptr_pin_laststate = false; return UP;
   }
-  return false;
+
+  if (!pinval & !*ptr_pin_laststate)
+    return pintimedelta > INTERVAL_BUTTON_IDLE ? RELEASED : UPIDLE;
+
+  return RELEASED;
 }
+
+//bool Device::buttonPressed() {
+//  if (digitalRead(pin_event) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
+//  {
+//    pin_event_time = millis();
+//    pin_event_laststate = true;
+//    return true;
+//  }
+//  if (digitalRead(pin_event) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
+//  {
+//    pin_event_time = millis();
+//    pin_event_laststate = false;
+//  }
+//  return false;
+//}
 
 void Device::loadState() {
   if (!_config) return;
   byte onboot = _config->cur_conf["onboot"].toInt();
   if (onboot == 0) {
     // stay off
-    Serial.printf(" - onboot: stay off \n");
+    debug(" - onboot: stay off \n");
     updateState(0);
   }
   else if (onboot == 1) {
     // turn on
-    Serial.printf(" - onboot: turn on \n");
+    debug(" - onboot: turn on \n");
     updateState(1);
   }
   else if (onboot == 2) {
     // saved state
     std::map<String, String> states = _config->loadState();
-    Serial.printf(" - onboot: last state: %u \n", states["state"].toInt());
+    debug(" - onboot: last state: %u \n", states["state"].toInt());
     updateState(states["state"].toInt());
   }
   else if (onboot == 3) {
     // inverted saved state
     std::map<String, String> states = _config->loadState();
     if (states["on"].toInt() == 0) {
-      Serial.printf(" - onboot: inverted state: %u \n", states["state"].toInt());
+      debug(" - onboot: inverted state: %u \n", states["state"].toInt());
       updateState(states["state"].toInt());
       saveState();
     }
     else {
-      Serial.printf(" - onboot: inverted state: 0 \n");
+      debug(" - onboot: inverted state: 0 \n");
       updateState(0);
       saveState();
     }

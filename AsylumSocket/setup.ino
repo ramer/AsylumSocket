@@ -1,123 +1,123 @@
 
 void initializeSetupMode() {
-    Serial.printf("\nEntering setup mode.\n\n");
+    debug("\nEntering setup mode.\n\n");
 
   if (!WiFi.smartConfigDone()) {
-    Serial.printf("Starting WiFi client ... ");
+    debug("Starting WiFi client ... ");
     WiFi.mode(WIFI_STA);
-    Serial.printf("started \n");
+    debug("started \n");
 
-    Serial.printf("Scanning WiFi networks ... ");
+    debug("Scanning WiFi networks ... ");
     WiFi.scanDelete();
     int n = WiFi.scanNetworks(false, true);
-    Serial.printf("done. Found %u networks \n", n);
+    debug("done. Found %u networks \n", n);
 
-    Serial.printf("Starting access point ... ");
+    debug("Starting access point ... ");
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
     WiFi.softAP(device.uid.c_str());
     delay(500);
-    Serial.printf("started (%s) \n", WiFi.softAPIP().toString().c_str());
+    debug("started (%s) \n", WiFi.softAPIP().toString().c_str());
   }
 
-	Serial.printf("Starting DNS-server ... ");
+	debug("Starting DNS-server ... ");
 	dnsServer.setErrorReplyCode(DNSReplyCode::NoError);
 	dnsServer.start(PORT_DNS, "*", WiFi.softAPIP());
-	Serial.printf("started \n");
+	debug("started \n");
 }
 
 void deinitializeSetupMode() {
-  Serial.printf("Closing DNS-server ... ");
+  debug("Closing DNS-server ... ");
   dnsServer.stop();
-  Serial.printf("closed \n");
+  debug("closed \n");
 
 	Serial.print("Closing access point ... ");
 	if (WiFi.softAPdisconnect(true)) {
-		Serial.printf("success \n");
+		debug("success \n");
 	}
 	else {
-		Serial.printf("error \n");
+		debug("error \n");
 	}
-  Serial.printf("Closing WiFi client ... ");
+  debug("Closing WiFi client ... ");
   if (WiFi.disconnect(true)) {
-    Serial.printf("closed \n");
+    debug("closed \n");
   }
   else {
-    Serial.printf("error \n");
+    debug("error \n");
   }
 }
 
 void initializeSmartConfigMode() {
-  Serial.printf("\nEntering Smart Config mode.\n\n");
+  debug("\nEntering Smart Config mode.\n\n");
 
-  Serial.printf("Starting WiFi client ... ");
+  debug("Starting WiFi client ... ");
   WiFi.mode(WIFI_STA);
-  Serial.printf("started \n");
+  debug("started \n");
 
-  Serial.printf("Scanning WiFi networks ... ");
+  debug("Scanning WiFi networks ... ");
   WiFi.scanDelete();
   int n = WiFi.scanNetworks(false, true);
-  Serial.printf("done. Found %u networks \n", n);
+  debug("done. Found %u networks \n", n);
 
-  Serial.printf("Starting Smart Config listener ... ");
+  debug("Starting Smart Config listener ... ");
   if (WiFi.beginSmartConfig()) {
-    Serial.printf("started \n");
+    debug("started \n");
   }
   else {
-    Serial.printf("error \n");
+    debug("error \n");
   }
 }
 
 void deinitializeSmartConfigMode() {
-  Serial.printf("Closing Smart Config listener ... ");
+  debug("Closing Smart Config listener ... ");
   if (WiFi.stopSmartConfig()) {
-    Serial.printf("closed \n");
+    debug("closed \n");
   }
   else {
-    Serial.printf("error \n");
+    debug("error \n");
   }
 
-  Serial.printf("Closing WiFi client ... ");
+  debug("Closing WiFi client ... ");
   if (WiFi.disconnect(true)) {
-    Serial.printf("closed \n");
+    debug("closed \n");
   }
   else {
-    Serial.printf("error \n");
+    debug("error \n");
   }
 }
 
 void initializeRegularMode() {
-	Serial.printf("\nEntering regular mode.\n\n");
+	debug("\nEntering regular mode.\n\n");
 
-  Serial.printf("Starting WiFi client ... ");
+  debug("Starting WiFi client ... ");
   WiFi.mode(WIFI_STA);
-  Serial.printf("started \n");
+  debug("started \n");
 
-  Serial.printf("Scanning WiFi networks ... ");
+  debug("Scanning WiFi networks ... ");
   WiFi.scanDelete();
   int n = WiFi.scanNetworks(false, true);
-  Serial.printf("done. Found %u networks \n", n);
+  debug("done. Found %u networks \n", n);
 
-	Serial.printf("Configuring MQTT-client ... ");
+	debug("Configuring MQTT-client ... ");
 	mqttClient.setServer(config.cur_conf["mqttserver"].c_str(), 1883);
 	mqttClient.setCallback(mqtt_callback);
-	Serial.printf("configured \n");
+	debug("configured \n");
 }
 
 void deinitializeRegularMode() {
 	if (mqttClient.connected()) {
-		Serial.printf("Closing MQTT-connection ... ");
+		debug("Closing MQTT-connection ... ");
 		mqttClient.disconnect();
-		Serial.printf("closed \n");
+		debug("closed \n");
 	}
 
   if (WiFi.isConnected()) {
-		Serial.printf("Disconnecting from access point ... ");
+		debug("Disconnecting from access point ... ");
 		if (WiFi.disconnect(true)) {
-			Serial.printf("success \n");
+			debug("success \n");
 		}
 		else {
-			Serial.printf("error \n");
+			debug("error \n");
 		}
 	}
 }
