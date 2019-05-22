@@ -1,11 +1,6 @@
-/*
- Name:		AsylumSocket.ino
- Created:	18.07.2018 14:11:41
- Author:	Sorokovikov Vitaliy
-*/
 
-//ESP8266
-//Flash size: 1M (64K SPIFFS)
+// ESP8266
+// Flash size: 1M (64K SPIFFS)
 
 #include <ESP8266WiFi.h>
 #include <ESPAsyncTCP.h>
@@ -18,15 +13,15 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  8
+#define DEVICE_TYPE  0
 
 //    0 - Socket
-//    1 - reserved
+//    1 -   reserved
 //    2 - Motor
 //    3 - Dimmer
 //    4 - Strip
 //    5 - Encoder
-//    6 - Remote2
+//    6 -   reserved
 //    7 - Touch-T1
 //    8 - AnalogSensor
 
@@ -92,7 +87,7 @@ Config          config;
   #include "src/AnalogSensor.h"
   #define PIN_MODE	A5	                // inverted
   #define PIN_LED   A2                  // inverted
-  AnalogSensor device(A6, A2);          // sensor, action
+  AnalogSensor device(A5, A2, A6);      // event, action, sensor
 #else
   #include "src/Device.h"
   Device device(0, 12);                 // event, action,
@@ -239,79 +234,9 @@ void loop() {
   check_newupdate();
   check_newconfig();
   check_mode();
+
   device.update();
+
   blynk();
 
 } // loop
-
-//#if DEVICE_TYPE == 0
-//#include "src/Socket.h"
-//Socket device(0, 12);
-//#elif DEVICE_TYPE == 2
-//#define DEVICE_PREFIX				"Motor"
-//#define PIN_EVENT					  0
-//#define PIN_ACTION					12
-//#define PIN_ACTION_DIR  		13
-//#define PIN_LED				      14
-//#define INTERVAL_MOTOR		  5000
-//#elif DEVICE_TYPE == 3
-//#define DEVICE_PREFIX				"Dimmer"
-//#include <Wire.h>
-//#define ADDRESS_I2C_SLAVE		(0x1)
-//#elif DEVICE_TYPE == 4
-//#define DEVICE_PREFIX				"Strip"
-//#include <Adafruit_NeoPixel.h>
-//Adafruit_NeoPixel strip = Adafruit_NeoPixel(STRIP_LEDCOUNT, PIN_ACTION, NEO_GRB + NEO_KHZ800); //rgb
-//#define PIN_ACTION					13
-//#define PIN_LED				      14
-//#define INTERVAL_STRIP_FRAME	  10
-//#define STRIP_LEDCOUNT          121
-//#elif DEVICE_TYPE == 5
-//#define DEVICE_PREFIX				"Encoder"
-//#define PIN_EVENT					  0
-//#define PIN_A					      12
-//#define PIN_B					      13
-//#define PIN_ACTION					14
-//#define PIN_LED				      2
-//volatile byte encoderstate = 0;
-//#elif DEVICE_TYPE == 6
-//#define DEVICE_PREFIX				"Remote2"
-//#define PIN_EVENT					  0
-//#define PIN_EVENT2					2
-//#define TOPIC1				      "Touch1-e079/pub"
-//#define TOPIC2				      "Encoder-c9b8/pub"
-//#define PIN_LED				      14
-//#elif DEVICE_TYPE == 7        // IMPORTANT: use Generic ESP8285 Module
-//#include "src/TouchT1.h"
-//TouchT1 device(0, 12, 9, 5, 10, 4);
-//#else
-//#define DEVICE_PREFIX				"Device"
-//#endif
-
-
-
-//#if DEVICE_TYPE == 0 // Socket
-//#elif DEVICE_TYPE == 2 // Motor
-//  pinMode(PIN_EVENT, INPUT);
-//  pinMode(PIN_ACTION, OUTPUT);	    digitalWrite(PIN_ACTION, LOW);		// default initial value
-//  pinMode(PIN_ACTION_DIR, OUTPUT);	digitalWrite(PIN_ACTION_DIR, LOW);	// default initial value
-//#elif DEVICE_TYPE == 3 // Dimmer
-//  debug("Joining I2C bus ... ");
-//  Wire.begin(0, 2);        // join i2c bus (address optional for master)
-//  debug("done \n");
-//#elif DEVICE_TYPE == 4 // Strip
-//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, HIGH);	// default initial value
-//#elif DEVICE_TYPE == 5 // Encoder
-//  pinMode(PIN_EVENT, INPUT);
-//  pinMode(PIN_A, INPUT);
-//  pinMode(PIN_B, INPUT);
-//  pinMode(PIN_ACTION, OUTPUT);	digitalWrite(PIN_ACTION, LOW);		// default initial value
-//	pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
-//  attachInterrupt(PIN_A, doEncoder, CHANGE);
-//#elif DEVICE_TYPE == 6 // Remote2
-//  pinMode(PIN_EVENT, INPUT);
-//  pinMode(PIN_EVENT2, INPUT);
-//  pinMode(PIN_LED, OUTPUT);	    digitalWrite(PIN_LED, LOW);	// default initial value
-//#elif DEVICE_TYPE == 7 // Touch1
-//#endif
