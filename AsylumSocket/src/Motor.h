@@ -1,5 +1,7 @@
 // Motor.h
 
+#ifdef ARDUINO_ESP8266_GENERIC
+
 #ifndef _MOTOR_h
 #define _MOTOR_h
 
@@ -20,5 +22,7 @@ public:
 protected:
   byte pin_action2;
 };
+
+#endif
 
 #endif

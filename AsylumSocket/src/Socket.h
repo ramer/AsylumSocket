@@ -1,5 +1,7 @@
 // Socket.h
 
+#ifdef ARDUINO_ESP8266_ESP01
+
 #ifndef _SOCKET_h
 #define _SOCKET_h
 
@@ -19,3 +21,4 @@ protected:
 
 #endif
 
+#endif

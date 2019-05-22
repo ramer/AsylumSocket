@@ -12,6 +12,7 @@
 #define INTERVAL_LED_SETUP	          500
 #define INTERVAL_LED_SMARTCONFIG      250
 #define INTERVAL_STATE_PUBLISH		    200
+#define DEBOUNCE_AVERAGE           		1000
 
 enum buttonstates { RELEASED = 0, DOWN = 1, DOWNIDLE = 2, PRESSED = 4, UP = 8, UPIDLE = 16 };
 
@@ -48,8 +49,7 @@ protected:
   virtual void generateTopics();
   virtual void loadState();
   virtual void saveState();
-  //virtual bool buttonPressed();
-  virtual buttonstates buttonState(byte pin, bool * ptr_pin_event_laststate = 0, ulong * ptr_pin_event_time = 0);
+  virtual buttonstates buttonState(byte pin, bool *ptr_pin_event_laststate, float *ptr_pin_average, ulong *ptr_pin_event_time);
 
   //std::function<void(ulong)> updateStateCallback;
 
@@ -62,6 +62,7 @@ protected:
   byte  pin_event;
   byte  pin_action;
   bool  pin_event_laststate = false;
+  float pin_event_average;
   ulong pin_event_time = 0;
 };
 

@@ -1,5 +1,7 @@
 // Strip.cpp
 
+#ifdef ARDUINO_ESP8266_GENERIC
+
 #include "Strip.h"
 
 Strip::Strip(byte event, byte action) : Device(event, action) {};
@@ -23,7 +25,7 @@ void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String 
 
 void Strip::update() {
   // process buttons
-  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { invertState(); saveState(); }
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_average, &pin_event_time) == DOWN) { invertState(); saveState(); }
 
   // update state of strip
   update_strip();
@@ -125,3 +127,5 @@ uint32_t Strip::strip_wheel(byte angle) {
   angle -= 170;
   return strip.Color(angle * 3, 255 - angle * 3, 0);
 }
+
+#endif

@@ -13,17 +13,16 @@
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  0
+#define DEVICE_TYPE  10
 
-//    0 - Socket
-//    1 -   reserved
-//    2 - Motor
-//    3 - Dimmer
-//    4 - Strip
-//    5 - Encoder
-//    6 -   reserved
-//    7 - Touch-T1
-//    8 - AnalogSensor
+//    10 - Socket
+//    11 - Touch-T1
+
+//    20 - Motor
+//    21 - Strip
+//    22 - Encoder
+
+//    30 - AnalogSensor
 
 // DEFINES
 
@@ -42,7 +41,7 @@
 
 // DECLARATIONS
 
-int8_t mode = -1; // 0 - regular , 1 - smart config , 2 - setup
+int8_t mode = -1;   // 0 - regular , 1 - smart config , 2 - setup
 
 bool laststate_mode = false;
 bool laststate_led = false;
@@ -67,23 +66,23 @@ IPAddress				wifi_AP_IP  (192, 168, 4, 1);
 IPAddress				wifi_AP_MASK(255, 255, 255, 0);
 Config          config;
 
-#if DEVICE_TYPE == 0                    // IMPORTANT: use Generic ESP8285 Module
+#if DEVICE_TYPE   == 10                 // IMPORTANT: use Generic ESP8285 Module
   #include "src/Socket.h"
   Socket device(0, 12);                 // event, action
-#elif DEVICE_TYPE == 2
+#elif DEVICE_TYPE == 11                 // IMPORTANT: use Generic ESP8285 Module
+  #include "src/TouchT1.h"
+  TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3
+#elif DEVICE_TYPE == 20                 // IMPORTANT: use Generic ESP8266 Module
   #include "src/Motor.h"
   Motor device(0, 12, 14);              // event, direction, action
-#elif DEVICE_TYPE == 4
+#elif DEVICE_TYPE == 21                 // IMPORTANT: use Generic ESP8266 Module
   #include "src/Strip.h"
   #define PIN_LED 12                    // redefine - we need GPIO 13 for LEDs
   Strip device(0, 13);                  // event, direction, action
-#elif DEVICE_TYPE == 5
+#elif DEVICE_TYPE == 22                 // IMPORTANT: use Generic ESP8266 Module
   #include "src/Encoder.h"
   Encoder device(0, 14, 12, 13);        // event, action, A, B
-#elif DEVICE_TYPE == 7                  // IMPORTANT: use Generic ESP8285 Module
-  #include "src/TouchT1.h"
-  TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3
-#elif DEVICE_TYPE == 8                  // IMPORTANT: use Amperka WiFi Slot
+#elif DEVICE_TYPE == 30                 // IMPORTANT: use Amperka WiFi Slot
   #include "src/AnalogSensor.h"
   #define PIN_MODE	A5	                // inverted
   #define PIN_LED   A2                  // inverted

@@ -1,5 +1,7 @@
 // TouchT1.cpp
 
+#ifdef ARDUINO_ESP8266_ESP01
+
 #include "TouchT1.h"
 
 TouchT1::TouchT1(byte event, byte action, byte event2, byte action2, byte event3, byte action3) : Device(event, action) {
@@ -29,9 +31,9 @@ void TouchT1::generateTopics() {
 
 void TouchT1::update() {
   // process buttons
-  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { invertState(); saveState(); }
-  if (buttonState(pin_event2, &pin_event_laststate2, &pin_event_time2) == DOWN) { invertState2(); saveState(); }
-  if (buttonState(pin_event3, &pin_event_laststate3, &pin_event_time3) == DOWN) { invertState3(); saveState(); }
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_average, &pin_event_time) == DOWN) { invertState(); saveState(); }
+  if (buttonState(pin_event2, &pin_event_laststate2, &pin_event_average2, &pin_event_time2) == DOWN) { invertState2(); saveState(); }
+  if (buttonState(pin_event3, &pin_event_laststate3, &pin_event_average3, &pin_event_time3) == DOWN) { invertState3(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -208,3 +210,4 @@ void TouchT1::saveState() {
   _config->saveState(root);
 }
 
+#endif

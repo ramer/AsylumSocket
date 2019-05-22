@@ -1,5 +1,7 @@
 // Encoder.h
 
+#ifdef ARDUINO_ESP8266_GENERIC
+
 #ifndef _ENCODER_h
 #define _ENCODER_h
 
@@ -41,3 +43,4 @@ static void EncoderInterruptFunc() {
 
 #endif
 
+#endif

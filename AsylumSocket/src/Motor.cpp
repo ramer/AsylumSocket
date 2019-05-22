@@ -1,5 +1,7 @@
 // Motor.cpp
 
+#ifdef ARDUINO_ESP8266_GENERIC
+
 #include "Motor.h"
 
 Motor::Motor(byte event, byte action, byte action2) : Device(event, action) {
@@ -25,3 +27,5 @@ void Motor::updateState(ulong state_new) {
 
   debug(" - state changed to %u \n", state_new);
 }
+
+#endif

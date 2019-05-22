@@ -1,5 +1,7 @@
 // TouchT1.h
 
+#ifdef ARDUINO_ESP8266_ESP01
+
 #ifndef _TOUCHT1_h
 #define _TOUCHT1_h
 
@@ -40,15 +42,18 @@ protected:
   bool state_published3 = false;
 
   byte pin_event2;
-  byte pin_action2;
   byte pin_event3;
+  byte pin_action2;
   byte pin_action3;
   bool pin_event_laststate2 = false;
-  ulong pin_event_time2 = 0;
   bool pin_event_laststate3 = false;
+  float pin_event_average2;
+  float pin_event_average3;
+  ulong pin_event_time2 = 0;
   ulong pin_event_time3 = 0;
 
 };
 
 #endif
 
+#endif

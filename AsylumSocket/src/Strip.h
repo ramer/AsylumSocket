@@ -1,5 +1,7 @@
 // Strip.h
 
+#ifdef ARDUINO_ESP8266_GENERIC
+
 #ifndef _STRIP_h
 #define _STRIP_h
 
@@ -43,3 +45,4 @@ protected:
 
 #endif
 
+#endif

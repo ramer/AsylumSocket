@@ -14,6 +14,8 @@ void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String
   pinMode(pin_event, INPUT);
   pinMode(pin_action, OUTPUT);	digitalWrite(pin_action, LOW);		// default initial value
 
+  pin_event_average = !digitalRead(pin_event);  // inverted initial value
+
   generateUid(prefix);
   generateGlobalTopics();
   generateTopics();
@@ -46,7 +48,7 @@ void Device::generateTopics(){
 
 void Device::update() {
   // process buttons
-  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { invertState(); saveState(); }
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_average, &pin_event_time) == DOWN) { invertState(); saveState(); }
 
   // check state published
   if (!_mqttClient) return;
@@ -111,45 +113,35 @@ void Device::publishState(String topic, ulong statepayload, bool *ptr_state_publ
   }
 }
 
-buttonstates Device::buttonState(byte pin, bool * ptr_pin_laststate, ulong * ptr_pin_time) {
+buttonstates Device::buttonState(byte pin, bool *ptr_pin_laststate, float *ptr_pin_average, ulong *ptr_pin_time) {
   if (ptr_pin_laststate == 0 || ptr_pin_time == 0) return RELEASED;
 
-  bool pinval = !digitalRead(pin);  // inverted
+  *ptr_pin_average = (*ptr_pin_average * (DEBOUNCE_AVERAGE - 1) + !digitalRead(pin)) / DEBOUNCE_AVERAGE;  // average inverted
+
   ulong pintimedelta = millis() - *ptr_pin_time;
 
-  if (pinval & !*ptr_pin_laststate && pintimedelta > INTERVAL_BUTTON_DEBOUNCE)
+  if (*ptr_pin_average > 0.8 && !*ptr_pin_laststate && pintimedelta > INTERVAL_BUTTON_DEBOUNCE)
   {
     *ptr_pin_time = millis(); *ptr_pin_laststate = true; return DOWN;
   }
 
-  if (pinval & *ptr_pin_laststate)
+  if (*ptr_pin_average > 0.8 && *ptr_pin_laststate)
+  {
     return pintimedelta > INTERVAL_BUTTON_IDLE ? PRESSED : DOWNIDLE;
+  }
 
-  if (!pinval & *ptr_pin_laststate && pintimedelta > INTERVAL_BUTTON_DEBOUNCE)
+  if (*ptr_pin_average < 0.2 && *ptr_pin_laststate && pintimedelta > INTERVAL_BUTTON_DEBOUNCE)
   {
     *ptr_pin_time = millis(); *ptr_pin_laststate = false; return UP;
   }
 
-  if (!pinval & !*ptr_pin_laststate)
+  if (*ptr_pin_average < 0.2 && !*ptr_pin_laststate)
+  {
     return pintimedelta > INTERVAL_BUTTON_IDLE ? RELEASED : UPIDLE;
+  }
 
   return RELEASED;
 }
-
-//bool Device::buttonPressed() {
-//  if (digitalRead(pin_event) == LOW && pin_event_laststate == false && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-//  {
-//    pin_event_time = millis();
-//    pin_event_laststate = true;
-//    return true;
-//  }
-//  if (digitalRead(pin_event) == HIGH && pin_event_laststate == true && millis() - pin_event_time > INTERVAL_EVENT_DEBOUNCE)
-//  {
-//    pin_event_time = millis();
-//    pin_event_laststate = false;
-//  }
-//  return false;
-//}
 
 void Device::loadState() {
   if (!_config) return;

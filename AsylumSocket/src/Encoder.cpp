@@ -1,5 +1,7 @@
 // Encoder.cpp
 
+#ifdef ARDUINO_ESP8266_GENERIC
+
 #include "Encoder.h"
 
 Encoder::Encoder(byte event, byte action, byte eventA, byte eventB) : Device(event, action) {
@@ -65,3 +67,5 @@ void Encoder::invertState() {
     updateState(0);
   }
 }
+
+#endif
