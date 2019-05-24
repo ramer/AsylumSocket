@@ -8,7 +8,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <Adafruit_NeoPixel.h>
-#include "Device.h"
+#include "../Device.h"
 
 #define INTERVAL_STRIP_FRAME	  10
 #define STRIP_LEDCOUNT          121

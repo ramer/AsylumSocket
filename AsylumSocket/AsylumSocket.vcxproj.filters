@@ -26,54 +26,54 @@
     <ClInclude Include="__vm\.AsylumSocket.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Socket.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\TouchT1.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="src\Device.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\Config.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Encoder.h">
+    <ClInclude Include="src\devices\AnalogSensor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Strip.h">
+    <ClInclude Include="src\devices\Encoder.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\Motor.h">
+    <ClInclude Include="src\devices\Motor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\AnalogSensor.h">
+    <ClInclude Include="src\devices\Socket.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\devices\Strip.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\devices\TouchT1.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Socket.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\TouchT1.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\Device.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Config.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Encoder.cpp">
+    <ClCompile Include="src\devices\AnalogSensor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Strip.cpp">
+    <ClCompile Include="src\devices\Encoder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Motor.cpp">
+    <ClCompile Include="src\devices\Motor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\AnalogSensor.cpp">
+    <ClCompile Include="src\devices\Socket.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\devices\Strip.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\devices\TouchT1.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -7,7 +7,7 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include "Device.h"
+#include "../Device.h"
 
 #define INTERVAL_MOTOR  5000
 

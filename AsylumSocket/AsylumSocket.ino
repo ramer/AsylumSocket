@@ -9,6 +9,7 @@
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
 #include <WiFiUdp.h>
+
 #include "src/Config.h"
 
 // GLOBAL FIRMWARE CONFIGURATION
@@ -67,28 +68,28 @@ IPAddress				wifi_AP_MASK(255, 255, 255, 0);
 Config          config;
 
 #if DEVICE_TYPE   == 10                 // IMPORTANT: use Generic ESP8285 Module
-  #include "src/Socket.h"
+  #include "src/devices/Socket.h"
   Socket device(0, 12);                 // event, action
 #elif DEVICE_TYPE == 11                 // IMPORTANT: use Generic ESP8285 Module
-  #include "src/TouchT1.h"
+  #include "src/devices/TouchT1.h"
   TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3
 #elif DEVICE_TYPE == 20                 // IMPORTANT: use Generic ESP8266 Module
-  #include "src/Motor.h"
+  #include "src/devices/Motor.h"
   Motor device(0, 12, 14);              // event, direction, action
 #elif DEVICE_TYPE == 21                 // IMPORTANT: use Generic ESP8266 Module
-  #include "src/Strip.h"
+  #include "src/devices/Strip.h"
   #define PIN_LED 12                    // redefine - we need GPIO 13 for LEDs
   Strip device(0, 13);                  // event, direction, action
 #elif DEVICE_TYPE == 22                 // IMPORTANT: use Generic ESP8266 Module
-  #include "src/Encoder.h"
+  #include "src/devices/Encoder.h"
   Encoder device(0, 14, 12, 13);        // event, action, A, B
 #elif DEVICE_TYPE == 30                 // IMPORTANT: use Amperka WiFi Slot
-  #include "src/AnalogSensor.h"
+  #include "src/devices/AnalogSensor.h"
   #define PIN_MODE	A5	                // inverted
   #define PIN_LED   A2                  // inverted
   AnalogSensor device(A5, A2, A6);      // event, action, sensor
 #else
-  #include "src/Device.h"
+  #include "src/devices/Device.h"
   Device device(0, 12);                 // event, action,
 #endif
   

@@ -7,7 +7,7 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include "Device.h"
+#include "../Device.h"
 
 class TouchT1 : public Device
 {

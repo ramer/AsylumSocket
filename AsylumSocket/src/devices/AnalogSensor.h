@@ -7,7 +7,7 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
-#include "Device.h"
+#include "../Device.h"
 
 #define INTERVAL_DELAY_SENSOR    3000
 #define INTERVAL_DELAY_BLINK     50
