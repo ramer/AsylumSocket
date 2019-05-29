@@ -4,20 +4,20 @@
 
 #include "TouchT1.h"
 
-TouchT1::TouchT1(byte event, byte action, byte event2, byte action2, byte event3, byte action3) : Device(event, action) {
+TouchT1::TouchT1(String prefix, byte event, byte action, byte event2, byte action2, byte event3, byte action3) : Device(prefix, event, action) {
   pin_event2 = event2;
   pin_action2 = action2;
   pin_event3 = event3;
   pin_action3 = action3;
 };
 
-void TouchT1::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+void TouchT1::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config) {
   pinMode(pin_event2, INPUT);
   pinMode(pin_action2, OUTPUT);	digitalWrite(pin_action2, LOW);		// default initial value
   pinMode(pin_event3, INPUT);
   pinMode(pin_action3, OUTPUT);	digitalWrite(pin_action3, LOW);		// default initial value
 
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
+  Device::initialize(ptr_mqttClient, ptr_config);
 }
 
 void TouchT1::generateTopics() {

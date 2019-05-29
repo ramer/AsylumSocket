@@ -11,13 +11,28 @@
 #include <WiFiUdp.h>
 
 #include "src/Config.h"
+#include "src/Device.h"
+
+#include "src/devices/Socket.h"
+#include "src/devices/TouchT1.h"
+#include "src/devices/Motor.h"
+#include "src/devices/Strip.h"
+#include "src/devices/Encoder.h"
+#include "src/devices/AnalogSensor.h"
 
 // GLOBAL FIRMWARE CONFIGURATION
 
-#define DEVICE_TYPE  10
+#define DEVICE_TYPE_SOCKET
+#define DEVICE_TYPE_TOUCHT1
+//
+//#define DEVICE_TYPE_MOTOR
+//#define DEVICE_TYPE_STRIP
+//#define DEVICE_TYPE_ENCODER
+//
+//#define DEVICE_TYPE_ANALOGSENSOR
 
 //    10 - Socket
-//    11 - Touch-T1
+//    11 - TouchT1
 
 //    20 - Motor
 //    21 - Strip
@@ -27,8 +42,9 @@
 
 // DEFINES
 
-#define DEBUG						              true
-#define DEBUG_CORE					          false
+#define DEBUG
+#define DEBUG_CORE
+
 #define WIFI_POWER                    20.5
 #define PORT_DNS					            53
 #define PORT_HTTP					            80
@@ -59,6 +75,8 @@ ulong	time_connection_wifi = 0;
 ulong	time_connection_mqtt = 0;
 byte attempts_connection_wifi = 0;
 
+String uid;
+
 DNSServer				dnsServer;
 WiFiClient			wifiClient;
 PubSubClient		mqttClient(wifiClient);
@@ -67,36 +85,15 @@ IPAddress				wifi_AP_IP  (192, 168, 4, 1);
 IPAddress				wifi_AP_MASK(255, 255, 255, 0);
 Config          config;
 
-#if DEVICE_TYPE   == 10                 // IMPORTANT: use Generic ESP8285 Module
-  #include "src/devices/Socket.h"
-  Socket device(0, 12);                 // event, action
-#elif DEVICE_TYPE == 11                 // IMPORTANT: use Generic ESP8285 Module
-  #include "src/devices/TouchT1.h"
-  TouchT1 device(0, 12, 9, 5, 10, 4);   // event, action, event2, action2, event3, action3
-#elif DEVICE_TYPE == 20                 // IMPORTANT: use Generic ESP8266 Module
-  #include "src/devices/Motor.h"
-  Motor device(0, 12, 14);              // event, direction, action
-#elif DEVICE_TYPE == 21                 // IMPORTANT: use Generic ESP8266 Module
-  #include "src/devices/Strip.h"
-  #define PIN_LED 12                    // redefine - we need GPIO 13 for LEDs
-  Strip device(0, 13);                  // event, direction, action
-#elif DEVICE_TYPE == 22                 // IMPORTANT: use Generic ESP8266 Module
-  #include "src/devices/Encoder.h"
-  Encoder device(0, 14, 12, 13);        // event, action, A, B
-#elif DEVICE_TYPE == 30                 // IMPORTANT: use Amperka WiFi Slot
-  #include "src/devices/AnalogSensor.h"
-  #define PIN_MODE	A5	                // inverted
-  #define PIN_LED   A2                  // inverted
-  AnalogSensor device(A5, A2, A6);      // event, action, sensor
-#else
-  #include "src/devices/Device.h"
-  Device device(0, 12);                 // event, action,
-#endif
+std::vector<Device*> devices;
+
   
 void setup() {
-#if DEBUG == true
+#ifdef DEBUG
   Serial.begin(74880);
-  Serial.setDebugOutput(DEBUG_CORE);
+#ifdef DEBUG_CORE
+  Serial.setDebugOutput(true);
+#endif
 #endif
   
   debug("\n\n\n");
@@ -106,6 +103,13 @@ void setup() {
   debug("Setting WiFi power to %f ... ", WIFI_POWER);
   WiFi.setOutputPower(WIFI_POWER);
   debug("done \n");
+
+  debug("Generating primary UID ... ");
+  uint8_t MAC_array[6];
+  WiFi.macAddress(MAC_array);
+  uid = "ESP-";
+  for (int i = sizeof(MAC_array) - 2; i < sizeof(MAC_array); ++i) uid += String(MAC_array[i], HEX);
+  debug("%s \n", uid.c_str());
 
 	debug("Configuring pins ... ");
 	pinMode(PIN_MODE, INPUT);
@@ -122,9 +126,38 @@ void setup() {
 
   bool configured = config.loadConfig();
 
-  debug("Initializing device \n");
-  device.initialize(&mqttClient, &config);
-  debug("Initialized: %s \n", device.uid.c_str());
+#if (defined DEVICE_TYPE_SOCKET                         && defined ARDUINO_ESP8266_ESP01)
+  devices.push_back(new Socket("Socket", 0, 12));       // event, action
+#endif
+#if (defined DEVICE_TYPE_TOUCHT1                        && defined ARDUINO_ESP8266_ESP01)
+  devices.push_back(new TouchT1("TouchT1", 0, 12, 9, 5, 10, 4));   // event, action, event2, action2, event3, action3
+#endif
+
+// IMPORTANT: use Generic ESP8266 Module
+#if (defined DEVICE_TYPE_MOTOR                          && defined ARDUINO_ESP8266_GENERIC)    
+  devices.push_back(new Motor("Motor", 0, 12, 14));              // event, direction, action
+#endif
+#if (defined DEVICE_TYPE_STRIP                          && defined ARDUINO_ESP8266_GENERIC)
+  #define PIN_LED 12                                    // redefine - we need GPIO 13 for LEDs
+  devices.push_back(new Strip("Strip", 0, 13));                  // event, direction, action
+#endif
+#if (defined DEVICE_TYPE_ENCODER                        && defined ARDUINO_ESP8266_GENERIC)
+  devices.push_back(new Encoder("Encoder", 0, 14, 12, 13));        // event, action, A, B
+#endif
+
+// IMPORTANT: use Amperka WiFi Slot
+#if (defined DEVICE_TYPE_ANALOGSENSOR                   && defined ARDUINO_AMPERKA_WIFI_SLOT)
+  #define PIN_MODE	A5	                                // inverted
+  #define PIN_LED   A2                                  // inverted
+  devices.push_back(new AnalogSensor("AnalogSensor", A5, A2, A6));      // event, action, sensor
+#endif 
+  
+  debug("Initializing devices \n");
+
+  for (auto &d : devices) {
+    d->initialize(&mqttClient, &config);
+    debug("Initialized: %s \n", d->uid.c_str());
+  }
 
   debug("Starting HTTP-server ... ");
   httpserver_setuphandlers();
@@ -212,13 +245,16 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					debug("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.current["mqttserver"].c_str(), device.uid.c_str(), config.current["mqttlogin"].c_str(), config.current["mqttpassword"].c_str());
+					debug("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.current["mqttserver"].c_str(), uid.c_str(), config.current["mqttlogin"].c_str(), config.current["mqttpassword"].c_str());
 
-					if (mqttClient.connect(device.uid.c_str(), config.current["mqttlogin"].c_str(), config.current["mqttpassword"].c_str())) {
-						debug("connected, state = %i \n", mqttClient.state());
-						
-            device.subscribe();
-            mqtt_sendstatus();
+          if (mqttClient.connect(uid.c_str(), config.current["mqttlogin"].c_str(), config.current["mqttpassword"].c_str())) {
+            debug("connected, state = %i \n", mqttClient.state());
+
+            for (auto &d : devices) {
+              d->subscribe();
+              d->publishStatus();
+            }
+
 					}
 					else 
 					{
@@ -235,7 +271,7 @@ void loop() {
   check_newconfig();
   check_mode();
 
-  device.update();
+  for (auto &d : devices) d->update();
 
   blynk();
 

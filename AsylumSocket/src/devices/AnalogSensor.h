@@ -16,9 +16,9 @@
 class AnalogSensor : public Device
 {
 public:
-  AnalogSensor(byte event, byte action, byte sensor);
+  AnalogSensor(String prefix, byte event, byte action, byte sensor);
 
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "AnalogSensor");
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
   
   void update();
   void updateState(ulong state_new);

@@ -18,8 +18,8 @@
 class Strip : public Device
 {
 public:
-  Strip(byte event, byte action);
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Strip");
+  Strip(String prefix, byte event, byte action);
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
 
   void update();
   void updateState(ulong state_new);

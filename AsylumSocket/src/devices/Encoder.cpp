@@ -4,12 +4,12 @@
 
 #include "Encoder.h"
 
-Encoder::Encoder(byte event, byte action, byte eventA, byte eventB) : Device(event, action) {
+Encoder::Encoder(String prefix, byte event, byte action, byte eventA, byte eventB) : Device(prefix, event, action) {
   pin_eventA = eventA;
   pin_eventB = eventB;
 };
 
-void Encoder::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+void Encoder::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config) {
   pinMode(pin_eventA, INPUT);
   pinMode(pin_eventB, INPUT);
 
@@ -17,7 +17,7 @@ void Encoder::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, Strin
   attachInterrupt(digitalPinToInterrupt(pin_eventA), EncoderInterruptFunc, CHANGE);
   attachInterrupt(digitalPinToInterrupt(pin_eventB), EncoderInterruptFunc, CHANGE);
 
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
+  Device::initialize(ptr_mqttClient, ptr_config);
 }
 
 void Encoder::doEncoder() {

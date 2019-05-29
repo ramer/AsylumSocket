@@ -19,34 +19,35 @@ enum buttonstates { RELEASED = 0, DOWN = 1, DOWNIDLE = 2, PRESSED = 4, UP = 8, U
 class Device
 {
 public:
-  Device(byte event, byte action);
+  Device(String prefix, byte event, byte action);
+  virtual ~Device();
 
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Device");
+  virtual void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
 
-  void update();
+  virtual void update();
   virtual void updateState(ulong state_new);
   virtual void invertState();
-  void handlePayload(String topic, String payload);
+  virtual void handlePayload(String topic, String payload);
 
-  void subscribe();
-  void publishState(String topic, ulong statepayload, bool *ptr_state_published);
+  virtual void subscribe();
+  virtual void publishState(String topic, ulong statepayload, bool *ptr_state_published);
+  virtual void publishStatus();
 
   //void onUpdateState(std::function<void(ulong)> onUpdateStateCallback);
   
   ulong state;
   ulong state_old;
 
+  String uid_prefix;
   String uid;
-  String mqtt_topic_pub;
-  String mqtt_topic_sub;
   String mqtt_topic_status;
   String mqtt_topic_setup;
   String mqtt_topic_reboot;
+  String mqtt_topic_pub;
+  String mqtt_topic_sub;
 
 protected:
-  void generateUid(String prefix);
-  void generateGlobalTopics();
-  virtual void generateTopics();
+  virtual void generateUid();
   virtual void loadState();
   virtual void saveState();
   virtual buttonstates buttonState(byte pin, bool *ptr_pin_event_laststate, float *ptr_pin_average, ulong *ptr_pin_event_time);

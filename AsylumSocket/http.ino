@@ -49,7 +49,7 @@ void handleApiConfig(AsyncWebServerRequest *request) {
   DynamicJsonBuffer  jsonBuffer;
   JsonObject& root = jsonBuffer.createObject();
 
-  root["uid"] = device.uid;
+  root["uid"] = uid;
   for (auto &item : config.current) {
     root[item.first] = item.second;
   }

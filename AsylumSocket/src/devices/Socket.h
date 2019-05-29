@@ -12,9 +12,9 @@
 class Socket : public Device
 {
 public:
-  Socket(byte event, byte action);
+  Socket(String prefix, byte event, byte action);
 
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Socket");
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
 
 protected:
 };

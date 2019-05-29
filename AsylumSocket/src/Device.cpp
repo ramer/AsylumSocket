@@ -2,12 +2,15 @@
 
 #include "Device.h"
 
-Device::Device(byte event, byte action) {
+Device::Device(String prefix, byte event, byte action) {
+  uid_prefix = prefix;
   pin_event = event;
   pin_action = action;
 }
 
-void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+Device::~Device(){}
+
+void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config) {
   _mqttClient = ptr_mqttClient;
   _config = ptr_config;
 
@@ -16,32 +19,19 @@ void Device::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String
 
   pin_event_average = !digitalRead(pin_event);  // inverted initial value
 
-  generateUid(prefix);
-  generateGlobalTopics();
-  generateTopics();
+  generateUid();
 
   loadState();
 }
 
-void Device::generateUid(String prefix) {
+void Device::generateUid() {
   uint8_t MAC_array[6];
   WiFi.macAddress(MAC_array);
-
-  prefix += "-";
-
-  for (int i = sizeof(MAC_array) - 2; i < sizeof(MAC_array); ++i) {
-    prefix += String(MAC_array[i], HEX);
-  }
-  uid = prefix;
-}
-
-void Device::generateGlobalTopics() {
+  uid = uid_prefix + "-";
+  for (int i = sizeof(MAC_array) - 2; i < sizeof(MAC_array); ++i) uid += String(MAC_array[i], HEX);
   mqtt_topic_status = uid + "/status";
   mqtt_topic_setup = uid + "/setup";
   mqtt_topic_reboot = uid + "/reboot";
-}
-
-void Device::generateTopics(){
   mqtt_topic_sub = uid + "/pub";
   mqtt_topic_pub = uid + "/sub";
 }
@@ -103,6 +93,7 @@ void Device::subscribe() {
 }
 
 void Device::publishState(String topic, ulong statepayload, bool *ptr_state_published) {
+  if (!_mqttClient) return;
   if (_mqttClient->connected()) {
     _mqttClient->publish(topic.c_str(), String(statepayload).c_str(), true);
 
@@ -110,6 +101,25 @@ void Device::publishState(String topic, ulong statepayload, bool *ptr_state_publ
 
     *ptr_state_published = true;
     state_publishedtime = millis();
+  }
+}
+
+void Device::publishStatus() {
+  if (!_mqttClient) return;
+  if (_mqttClient->connected()) {
+    char payload[MQTT_MAX_PACKET_SIZE];
+
+    uint8_t mac_int[6];
+    WiFi.macAddress(mac_int);
+    String mac_str = "";
+    for (int i = 0; i < sizeof(mac_int); ++i) {
+      mac_str += String(mac_int[i], HEX);
+    }
+
+    snprintf(payload, sizeof(payload), "{\"MAC\":\"%s\",\"IP\":\"%s\"}", mac_str.c_str(), WiFi.localIP().toString().c_str());
+    _mqttClient->publish(mqtt_topic_status.c_str(), payload, true);
+      
+    debug(" - message sent [%s] %s \n", mqtt_topic_status.c_str(), payload);
   }
 }
 

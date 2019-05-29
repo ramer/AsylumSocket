@@ -14,9 +14,9 @@
 class Motor : public Device
 {
 public:
-  Motor(byte event, byte action, byte action2);
+  Motor(String prefix, byte event, byte action, byte action2);
 
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Motor");
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
   void updateState(ulong state_new);
 
 protected:

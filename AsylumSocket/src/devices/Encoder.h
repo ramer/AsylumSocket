@@ -14,9 +14,9 @@
 class Encoder : public Device
 {
 public:
-  Encoder(byte event, byte action, byte eventA, byte eventB);
+  Encoder(String prefix, byte event, byte action, byte eventA, byte eventB);
 
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "Encoder");
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
 
   void updateState(ulong state_new);
   void invertState();

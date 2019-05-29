@@ -15,7 +15,7 @@ void initializeSetupMode() {
     debug("Starting access point ... ");
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(wifi_AP_IP, wifi_AP_IP, wifi_AP_MASK);
-    WiFi.softAP(device.uid.c_str());
+    WiFi.softAP(uid.c_str());
     delay(500);
     debug("started (%s) \n", WiFi.softAPIP().toString().c_str());
   }

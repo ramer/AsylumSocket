@@ -4,9 +4,9 @@
 
 #include "Strip.h"
 
-Strip::Strip(byte event, byte action) : Device(event, action) {};
+Strip::Strip(String prefix, byte event, byte action) : Device(prefix, event, action) {};
 
-void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config) {
   _mqttClient = ptr_mqttClient;
   _config = ptr_config;
 
@@ -14,9 +14,7 @@ void Strip::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String 
   strip.begin();
   strip.show();
 
-  generateUid(prefix);
-  generateGlobalTopics();
-  generateTopics();
+  generateUid();
   
   loadState();
 

@@ -4,27 +4,27 @@
 
 #include "AnalogSensor.h"
 
-AnalogSensor::AnalogSensor(byte event, byte action, byte sensor) : Device(event, action) {
+AnalogSensor::AnalogSensor(String prefix, byte event, byte action, byte sensor) : Device(prefix, event, action) {
   pin_sensor = sensor;
 };
 
-void AnalogSensor::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+void AnalogSensor::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config) {
   // we need GND and VCC on theese pins to use button (MODE)
   pinMode(A3, OUTPUT); digitalWrite(A3, LOW);
   pinMode(A7, OUTPUT); digitalWrite(A7, HIGH);
 
   pinMode(pin_sensor, INPUT);
   
-  zero_state = ptr_config->cur_conf["extension1"].toInt();
+  zero_state = ptr_config->current["extension1"].toInt();
   
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
+  Device::initialize(ptr_mqttClient, ptr_config);
 }
 
 void AnalogSensor::update() {
   // process buttons
-  if (buttonState(pin_event, &pin_event_laststate, &pin_event_time) == DOWN) { 
+  if (buttonState(pin_event, &pin_event_laststate, &pin_event_average, &pin_event_time) == DOWN) { 
     zero_state = state;
-    _config->cur_conf["extension1"] = String(zero_state);
+    _config->current["extension1"] = String(zero_state);
     _config->saveConfig();
     state_published = false;
   }

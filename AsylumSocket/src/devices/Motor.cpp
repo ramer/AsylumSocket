@@ -4,14 +4,14 @@
 
 #include "Motor.h"
 
-Motor::Motor(byte event, byte action, byte action2) : Device(event, action) {
+Motor::Motor(String prefix, byte event, byte action, byte action2) : Device(prefix, event, action) {
   pin_action2 = action2;
 };
 
-void Motor::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix) {
+void Motor::initialize(PubSubClient *ptr_mqttClient, Config *ptr_config) {
   pinMode(pin_action2, OUTPUT);	digitalWrite(pin_action2, LOW);		// default initial value
 
-  Device::initialize(ptr_mqttClient, ptr_config, prefix);
+  Device::initialize(ptr_mqttClient, ptr_config);
 }
 
 void Motor::updateState(ulong state_new) {

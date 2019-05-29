@@ -12,9 +12,9 @@
 class TouchT1 : public Device
 {
 public:
-  TouchT1(byte event, byte action, byte event2, byte action2, byte event3, byte action3);
+  TouchT1(String prefix, byte event, byte action, byte event2, byte action2, byte event3, byte action3);
 
-  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config, String prefix = "TouchT1");
+  void initialize(PubSubClient *ptr_mqttClient, Config *ptr_config);
   void update();
   void updateState2(ulong state_new);
   void invertState2();
