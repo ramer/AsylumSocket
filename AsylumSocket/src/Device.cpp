@@ -145,7 +145,7 @@ buttonstates Device::buttonState(byte pin, bool *ptr_pin_laststate, float *ptr_p
 
 void Device::loadState() {
   if (!_config) return;
-  byte onboot = _config->cur_conf["onboot"].toInt();
+  byte onboot = _config->current["onboot"].toInt();
   if (onboot == 0) {
     // stay off
     debug(" - onboot: stay off \n");
@@ -180,7 +180,7 @@ void Device::loadState() {
 
 void Device::saveState() {
   if (!_config) return;
-  byte onboot = _config->cur_conf["onboot"].toInt();
+  byte onboot = _config->current["onboot"].toInt();
   if (onboot == 0 || onboot == 1) return;
 
   bool on = state;

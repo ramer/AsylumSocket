@@ -99,7 +99,7 @@ void initializeRegularMode() {
   debug("done. Found %u networks \n", n);
 
 	debug("Configuring MQTT-client ... ");
-	mqttClient.setServer(config.cur_conf["mqttserver"].c_str(), 1883);
+	mqttClient.setServer(config.current["mqttserver"].c_str(), 1883);
 	mqttClient.setCallback(mqtt_callback);
 	debug("configured \n");
 }

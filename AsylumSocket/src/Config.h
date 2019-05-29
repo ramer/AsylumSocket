@@ -25,8 +25,8 @@ class Config {
 public:
   Config();
 
-  std::map<String, String> cur_conf;
-  std::map<String, String> def_conf;
+  std::map<String, String> current;
+  std::map<String, String> predefined;
 
   bool loadConfig();
   //bool loadConfig(bool eeprom);

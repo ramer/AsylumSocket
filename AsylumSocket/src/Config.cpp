@@ -3,7 +3,7 @@
 #include "Config.h"
 
 Config::Config() {
-  def_conf = {
+  predefined = {
     { "description", "" },
     { "mode", "0" },
     { "apssid", "" },
@@ -28,7 +28,7 @@ bool Config::loadConfig() {
   if (!file)
   {
     debug("failed. Using default configuration \n");
-    cur_conf = def_conf;
+    current = predefined;
     return false;
   }
   else {
@@ -42,24 +42,24 @@ bool Config::loadConfig() {
   //debug("\n-------------\t\tEND OF FILE\t\t------------\n\n");
   if (!root.success()) {
     debug("Parsing Configuration file (%s): failed. Using default configuration \n", file.name());
-    cur_conf = def_conf;
+    current = predefined;
     file.close();
     return false;
   }
   if (!root.containsKey("validator") || root["validator"] != CONFIG_VALIDATOR) { 
     debug("Validating Configuration file (%s): failed. Using default configuration \n", file.name());
-    cur_conf = def_conf;
+    current = predefined;
     file.close();
     return false;
   }
 
-  for (auto &itemDefault : def_conf) {
+  for (auto &itemDefault : predefined) {
     if (!root.containsKey(itemDefault.first)) {
       debug("Configuration file (%s) does not have (%s) key, using default value (%s)", file.name(), itemDefault.first.c_str(), itemDefault.second.c_str());
-      cur_conf.insert(itemDefault);
+      current.insert(itemDefault);
     }
     else {
-      cur_conf[itemDefault.first] = root[itemDefault.first].as<String>();
+      current[itemDefault.first] = root[itemDefault.first].as<String>();
     }
   }
   file.close();
@@ -132,7 +132,7 @@ void Config::saveConfig() {
 
   root["validator"] = CONFIG_VALIDATOR;
 
-  for (auto &item : cur_conf) {
+  for (auto &item : current) {
     root[item.first] = item.second;
   }
   //debug("\n-------------\t\tBEGIN OF FILE\t\t------------\n");
@@ -185,7 +185,7 @@ std::map<String, String> Config::loadState()
   //debug("-------------\t\tBEGIN OF LOAD\t\t------------\n");
   //root.prettyPrintTo(Serial);
   //debug("\n-------------\t\tEND OF LOAD\t\t------------\n");
-    if (!root.success()) { file.close(); return states; }
+  if (!root.success()) { file.close(); return states; }
   for (auto &jsonPair : root) {
     states.insert(std::pair<String, String>(String(jsonPair.key), String(jsonPair.value.asString())));
   }

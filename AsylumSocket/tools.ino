@@ -107,7 +107,7 @@ void blynk() {
   else {
     if (millis() - time_led > INTERVAL_LED_SETUP) {
       time_led = millis();
-      digitalWrite(PIN_LED, (config.cur_conf["onboardled"].toInt() == 0 ? HIGH : LOW)); // LED circuit inverted
+      digitalWrite(PIN_LED, (config.current["onboardled"].toInt() == 0 ? HIGH : LOW)); // LED circuit inverted
     }
   }
 }

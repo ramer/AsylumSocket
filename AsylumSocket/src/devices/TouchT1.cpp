@@ -142,7 +142,7 @@ void TouchT1::subscribe() {
 
 void TouchT1::loadState() {
   if (!_config) return;
-  byte onboot = _config->cur_conf["onboot"].toInt();
+  byte onboot = _config->current["onboot"].toInt();
   if (onboot == 0) {
     // stay off
     debug(" - onboot: stay off \n");
@@ -187,7 +187,7 @@ void TouchT1::loadState() {
 
 void TouchT1::saveState() {
   if (!_config) return;
-  byte onboot = _config->cur_conf["onboot"].toInt();
+  byte onboot = _config->current["onboot"].toInt();
   if (onboot == 0 || onboot == 1) return;
 
   bool on = state || state2 || state3;

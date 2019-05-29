@@ -156,8 +156,8 @@ void loop() {
       case WL_CONNECTED:
         debug("connected, IP address: %s \n", WiFi.localIP().toString().c_str());
 
-        config.cur_conf["apssid"] = WiFi.SSID();
-        config.cur_conf["apkey"] = WiFi.psk();
+        config.current["apssid"] = WiFi.SSID();
+        config.current["apkey"] = WiFi.psk();
           
         initializeSetupMode(); // cant use 'set_mode()' - we can't deinitialize smart config mode yet
         mode = 2; // crutch
@@ -194,9 +194,9 @@ void loop() {
         attempts_connection_wifi++;
         if (attempts_connection_wifi >= 100) { set_mode(1); return; }
 
-        if (config.cur_conf["apssid"].length() != 0) {
-          debug("Connecting to access point: %s , password: %s , attempt: %u \n", config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str(), attempts_connection_wifi);
-          WiFi.begin(config.cur_conf["apssid"].c_str(), config.cur_conf["apkey"].c_str());
+        if (config.current["apssid"].length() != 0) {
+          debug("Connecting to access point: %s , password: %s , attempt: %u \n", config.current["apssid"].c_str(), config.current["apkey"].c_str(), attempts_connection_wifi);
+          WiFi.begin(config.current["apssid"].c_str(), config.current["apkey"].c_str());
         } else {
           debug("Connecting to access point error: no SSID specified \n");
           set_mode(1); return;
@@ -212,9 +212,9 @@ void loop() {
 				if (!mqttClient.connected() && millis() - time_connection_mqtt > INTERVAL_CONNECTION_MQTT) {
 					time_connection_mqtt = millis();
 
-					debug("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.cur_conf["mqttserver"].c_str(), device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str());
+					debug("Connecting to MQTT server: %s as %s , auth %s : %s ... ", config.current["mqttserver"].c_str(), device.uid.c_str(), config.current["mqttlogin"].c_str(), config.current["mqttpassword"].c_str());
 
-					if (mqttClient.connect(device.uid.c_str(), config.cur_conf["mqttlogin"].c_str(), config.cur_conf["mqttpassword"].c_str())) {
+					if (mqttClient.connect(device.uid.c_str(), config.current["mqttlogin"].c_str(), config.current["mqttpassword"].c_str())) {
 						debug("connected, state = %i \n", mqttClient.state());
 						
             device.subscribe();
